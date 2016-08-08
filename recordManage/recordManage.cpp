@@ -126,7 +126,11 @@ int recordManage::getOneAvdata()
 		m_Avdata.id = 0;
 		first = 0;
 	}
-	return m_pCacheClient->getOneAvdata(&m_Avdata);
+	 int ret=m_pCacheClient->getOneAvdata(&m_Avdata);
+	 if(ret==0){
+		 m_Avdata.id++;
+	 }
+	 return ret;
 }
 
 int 	recordManage::run()
@@ -330,6 +334,5 @@ int recordManage::saveOneAvToFile()
 	CHECKRET(ret);
 	ret=m_pAviOp->createOneAvFile(&m_Avdata,m_FileName);
 	CHECKRET(ret);
-	m_Avdata.id++;
 	return 0;
 }
