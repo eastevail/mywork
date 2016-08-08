@@ -10,8 +10,9 @@
 static avDataManage* pav=NULL;
 static void signalINTHandler(int signum)
 {
+    DBG();
 	delete pav;
-	return;
+	exit(-1);
 }
 
 int main(){
@@ -23,8 +24,14 @@ int main(){
     sigemptyset((sigset_t *)&sigAction.sa_mask);
     sigaddset((sigset_t *)&sigAction.sa_mask, SIGINT);
     sigaction(SIGINT, &sigAction, NULL);
+    sigaction(SIGSEGV, &sigAction, NULL);
+    sigaction(SIGKILL, &sigAction, NULL);
     pav= new avDataManage();
-    pav->init();
+    DBG();
+    if(pav->init()<0){
+    	return -1;
+    }
+    DBG();
 	while(1){
 		pav->saveOneAvdataToCach();
 	}

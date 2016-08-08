@@ -26,16 +26,20 @@ cacheManage::cacheManage(cacheType type)
 cacheManage::~cacheManage()
 {
 	// TODO Auto-generated destructor stub
+	DBG();
     if(shmdt(shmptr) == -1)
     {
-        fprintf(stderr, "shmdt failed\n");
+      DBG( "shmdt failed\n");
     }
+    DBG();
     //删除共享内存
     if(shmctl(shmid, IPC_RMID, 0) == -1)
     {
-        fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+        DBG( "shmctl(IPC_RMID) failed\n");
     }
+    DBG();
 	if(currentType==server){
+		DBG();
 		union semun sem_union;
 		if(semctl(semid,0,IPC_RMID,sem_union)==-1){
 			perror("semctl IPC_RMID error:");
@@ -103,7 +107,9 @@ int cacheManage::semV(int index)
 
 int cacheManage::saveOneVideoFrame(unsigned char* start,int len,int index)
 {
+	DBG("len %d,index=%d,pindexInSh->index[index].offV %d  indexlen %d",len,index,pindexInSh->index[index].offV,indexlen);
 	memcpy(shmptr+pindexInSh->index[index].offV,start,len);
+	DBG();
 	pindexInSh->index[index].lenV=len;
 	return 0;
 }
@@ -121,6 +127,7 @@ uint32_t cacheManage::getIndexFromeId(uint32_t id)
 int cacheManage::saveOneAvdata(Avdata* pdata)
 {
 	if (currentType == server) {
+		DBG();
 		if (pindexInSh->newestId == CACHEERRORNUM)
 			pindexInSh->newestId = 0;
 		uint32_t index = getIndexFromeId(pindexInSh->newestId);
@@ -128,11 +135,16 @@ int cacheManage::saveOneAvdata(Avdata* pdata)
 			DBG("av length is big than cache len\n");
 			return -1;
 		}
+		DBG();
 		semP(index);
+		DBG();
 		saveOneVideoFrame(pdata->buffV, pdata->lenV, index);
+		DBG();
 		saveOneAudioFrame(pdata->buffA, pdata->lenA, index);
+		DBG();
 		pindexInSh->newestId++;
 		semV(index);
+		DBG();
 		return 0;
 	} else {
 		return -1;
@@ -176,7 +188,7 @@ int cacheManage::shInit()
 	        perror("shmget error in server:");
 	        return -1;
 	    }
-	    shmptr = shmat(shmid, 0, 0);
+	    shmptr = shmat(shmid, 0, SHM_RDONLY);
 	    if(shmptr == (void*)-1)
 	    {
 	    	perror( "shmat failed in server");
@@ -270,6 +282,7 @@ int cacheManage::semInit()
 int cacheManage::init()
 {
 	indexlen = sizeof(AVIndex);
+	setAvdataLen();
 	if((shInit()<0)||(semInit()<0))
 		return -1;
 	return 0;

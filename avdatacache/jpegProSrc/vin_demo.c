@@ -37,7 +37,7 @@
 #include"vin_demo.h"
 #define DEFAULT_SAVE_FOLDER "/mnt/sdcard/dsc"
 
-static int savefd;
+/*static int savefd;*/
 
 static int s_i32FBWidth;
 static int s_i32FBHeight;
@@ -217,7 +217,7 @@ OSDInit(
 	}
 	fclose(fpOSDImg); 
 }
-unsigned char *backupVideoBuffer;
+/*unsigned char *backupVideoBuffer;*/
 static int 
 InitFBDevice(
 	uint8_t **ppu8FBBuf,
@@ -692,8 +692,8 @@ static void myExitHandler (int sig)
 {
 	
 	/////////save avi
-	close(savefd);
-	sync();
+/*	close(savefd);*/
+/*	sync();*/
 	/////////save avi
 //	ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
 	StopV4LCapture();	
@@ -707,11 +707,11 @@ static void myExitHandler (int sig)
 	close(i32FBFd);
 	////////////////
 	memcpy((void*)pu8FBBufAddr, (char*)backupVideoBuffer, u32FBBufSize);*/
-	free(backupVideoBuffer);
+/*	free(backupVideoBuffer);*/
 	////////////////////////////
 //	close(i32KpdFd);
 
-	exit(-9);	
+	return ;
 }
 
 
@@ -790,16 +790,16 @@ int initJpegPro()
 	uint32_t u32PreviewImgWidth=0, u32PreviewImgHeight=0;
 
 
-	signal (SIGINT, myExitHandler);
+/*	signal (SIGINT, myExitHandler);
 	//signal (SIGQUIT, myExitHandler);
  	//signal (SIGILL, myExitHandler);
   	//signal (SIGABRT, myExitHandler);
   	//signal (SIGFPE, myExitHandler);
   	signal (SIGKILL, myExitHandler);
 	//signal (SIGPIPE, myExitHandler);
-	signal (SIGTERM, myExitHandler);
+	signal (SIGTERM, myExitHandler);*/
 
-
+	DEBUG_PRINT("\n");
 	s_sJpegEncFeat.eJpegEncThbSupp = eJPEG_ENC_THB_NONE;
 	s_sJpegEncFeat.bUpScale = FALSE;
 
@@ -1014,8 +1014,9 @@ exit_prog:
 
 int unInitJpecPro()
 {
-	FinializeJpegDevice();
-	FinializeV4LDevice();
+	myExitHandler(100);
+/*	FinializeJpegDevice();
+	FinializeV4LDevice();*/
 
 	return 0;
 }
@@ -1023,16 +1024,20 @@ int unInitJpecPro()
 int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
 {
 	// refresh image
-
+	DBG();
 	if (ReadV4LPicture(&pu8PicPtr, &u64TS, &u32PicPhyAdr) == ERR_V4L_SUCCESS) {
+		DBG();
 		TriggerV4LNextFrame();
-
+		DBG();
 /*			memset(p8SrcBuf_vpe + u32FBBufSize, 0x00, u32FBBufSize);
 		memcpy((void*) p8SrcBuf_vpe, (char*) p8SrcBuf_black, u32FBBufSize);*/
 		getfps();
+		DBG();
 		switch (rot_num) {
 		case 0:
+			DBG();
 			FormatConversion_up_QVGA(pu8PicPtr, p8SrcBuf_vpe, 320, 240); //ok
+			DBG();
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		case 1:
@@ -1052,10 +1057,13 @@ int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		}
+		DBG();
 		jpegCodec_reserved_vpe_QVGA_to_buff(p8SrcBuf_vpe,buff,buflen);
+		DBG();
 		//jpegCodec_reserved_vpe_QVGA_file(p8SrcBuf_vpe, pchSaveFolder);
 		//memcpy((void*) pu8FBBufAddr, (char*) p8SrcBuf_vpe + u32FBBufSize, u32FBBufSize);
 	} else {
+		DBG();
 		ERR_PRINT("Read V4L Error\n");
 		return -1;
 	}

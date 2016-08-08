@@ -22,6 +22,7 @@ extern "C"{
 #define APPNAME "[-DBG-]"
 #endif
 
+#define DEBUG_PRINT DBG
 #define DBG(fmt, args...) \
     do{  \
         fprintf(stdout, "[-DBG-] [%s:%5d] --- " fmt"\n", __FILE__, __LINE__, ## args);  \

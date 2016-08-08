@@ -15,14 +15,16 @@
 
 #ifndef __MISC_H__
 #define __MISC_H__
-
+#include"../debug.h"
 //#define DEBUG_PRINT(x, ...) fprintf(stdout, x, ##__VA_ARGS__)
 //#define DEBUG_PRINT(x, ...)
 
+/*
 #define DEBUG_PRINT(fmt, args...) \
     do{  \
         fprintf(stdout, "[-DBG-] [%s:%5d] --- " fmt"\n", __FILE__, __LINE__, ## args);  \
     }while(0)
+*/
 #define ERR_PRINT(x, ...) fprintf(stderr, x, ##__VA_ARGS__)
 
 #ifndef BOOL

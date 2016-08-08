@@ -16,16 +16,23 @@ avDataManage::avDataManage()
 avDataManage::~avDataManage()
 {
 	// TODO Auto-generated destructor stub
-	if(!m_pVideoPro)
+	if(m_pVideoPro)
 		delete m_pVideoPro;
-	if(!m_pcacheserver)
+	DBG();
+	if(m_pcacheserver){
+		DBG("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		delete m_pcacheserver;
+	}
+	DBG();
 }
 
 int avDataManage::init()
 {
 	m_pVideoPro = new jpegPro();
 	m_pcacheserver = cacheManage::getinstance(server);
+	if((m_pVideoPro->init()<0)||(m_pcacheserver->init()<0)){
+		return -1;
+	}
 	bzero(m_bufV,sizeof(m_bufV));
 	bzero(m_bufA,sizeof(m_bufA));
 	return 0;
@@ -41,6 +48,8 @@ int avDataManage::saveOneAvdataToCach()
 	av.lenV=VIDEOBUFFMAX;
 	m_pVideoPro->getOneVideoFrameFromDri(0,av.buffV,&av.lenV);
 	//m_pAudioPro
+	DBG();
 	m_pcacheserver->saveOneAvdata(&av);
+	DBG();
 	return 0;
 }
