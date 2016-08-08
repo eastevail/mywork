@@ -27,18 +27,17 @@ cacheManage::cacheManage(cacheType type)
 cacheManage::~cacheManage()
 {
 	// TODO Auto-generated destructor stub
-    if(shmdt(shmptr) == -1)
-    {
-    	DBGERROR( "shmdt failed\n");
-    }
-    //删除共享内存
-    if(shmctl(shmid, IPC_RMID, 0) == -1)
-    {
-    	DBGERROR( "shmctl(IPC_RMID) failed\n");
-    }
-	if(currentType==server){
+	if (shmdt(shmptr) == -1) {
+		DBGERROR("shmdt failed\n");
+	}
+	//删除共享内存
+	if (currentType == server) {
+		if (shmctl(shmid, IPC_RMID, 0) == -1) {
+			DBGERROR("shmctl(IPC_RMID) failed\n");
+		}
+
 		union semun sem_union;
-		if(semctl(semid,0,IPC_RMID,sem_union)==-1){
+		if (semctl(semid, 0, IPC_RMID, sem_union) == -1) {
 			perror("semctl IPC_RMID error:");
 		}
 	}
