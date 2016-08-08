@@ -15,7 +15,7 @@
 
 #ifndef __MISC_H__
 #define __MISC_H__
-#include"../debug.h"
+#include "../../common/debug.h"
 //#define DEBUG_PRINT(x, ...) fprintf(stdout, x, ##__VA_ARGS__)
 //#define DEBUG_PRINT(x, ...)
 

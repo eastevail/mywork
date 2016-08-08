@@ -4,7 +4,7 @@
 #include ../dir.rule
 
 TB_APPDIR         = `pwd`/..
-TARGET		= avdataserver
+TARGET		= recordserver
 #INSTALL_DIR	= $(TB_APPDIR)/bin/apps
 #============================================================================
 #   ���ñ�����
@@ -21,7 +21,7 @@ STRIP	= $(PREFIX)strip
 #============================================================================
 #   ������ʱ�ļ�
 #============================================================================
-C_SRC		= $(shell find ./jpegProSrc -name "*.c")
+C_SRC		= $(shell find ./ -name "*.c")
 C_OBJS		= $(C_SRC:%.c=%.o)
 
 CPP_SRC		= $(shell find ./ -name "*.cpp")

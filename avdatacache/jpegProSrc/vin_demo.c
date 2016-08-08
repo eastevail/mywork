@@ -1024,20 +1024,15 @@ int unInitJpecPro()
 int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
 {
 	// refresh image
-	DBG();
+
 	if (ReadV4LPicture(&pu8PicPtr, &u64TS, &u32PicPhyAdr) == ERR_V4L_SUCCESS) {
-		DBG();
 		TriggerV4LNextFrame();
-		DBG();
 /*			memset(p8SrcBuf_vpe + u32FBBufSize, 0x00, u32FBBufSize);
 		memcpy((void*) p8SrcBuf_vpe, (char*) p8SrcBuf_black, u32FBBufSize);*/
 		getfps();
-		DBG();
 		switch (rot_num) {
 		case 0:
-			DBG();
 			FormatConversion_up_QVGA(pu8PicPtr, p8SrcBuf_vpe, 320, 240); //ok
-			DBG();
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		case 1:
@@ -1057,13 +1052,13 @@ int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		}
-		DBG();
+
 		jpegCodec_reserved_vpe_QVGA_to_buff(p8SrcBuf_vpe,buff,buflen);
-		DBG();
+
 		//jpegCodec_reserved_vpe_QVGA_file(p8SrcBuf_vpe, pchSaveFolder);
 		//memcpy((void*) pu8FBBufAddr, (char*) p8SrcBuf_vpe + u32FBBufSize, u32FBBufSize);
 	} else {
-		DBG();
+
 		ERR_PRINT("Read V4L Error\n");
 		return -1;
 	}

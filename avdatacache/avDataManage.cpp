@@ -18,12 +18,10 @@ avDataManage::~avDataManage()
 	// TODO Auto-generated destructor stub
 	if(m_pVideoPro)
 		delete m_pVideoPro;
-	DBG();
 	if(m_pcacheserver){
-		DBG("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		delete m_pcacheserver;
 	}
-	DBG();
+
 }
 
 int avDataManage::init()
@@ -48,8 +46,7 @@ int avDataManage::saveOneAvdataToCach()
 	av.lenV=VIDEOBUFFMAX;
 	m_pVideoPro->getOneVideoFrameFromDri(0,av.buffV,&av.lenV);
 	//m_pAudioPro
-	DBG();
 	m_pcacheserver->saveOneAvdata(&av);
-	DBG();
+
 	return 0;
 }
