@@ -233,6 +233,7 @@ static int searchDCIMNumber(char *path)
 	do {
 		if ((dirptr = opendir(path)) == NULL) {
 			DBGERROR("open dir %s ,%d fail!\ns",path,count);
+			DBGERROR("opendir :%s", strerror(errno));
 			count++;
 
 			usleep(100000);
