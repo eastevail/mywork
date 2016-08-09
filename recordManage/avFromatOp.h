@@ -14,9 +14,8 @@ public:
 	avFromatOp();
 	virtual ~avFromatOp();
 	virtual int init()=0;
-	virtual int createOneAvFile(Avdata* pdata,unsigned char* filename)=0;
+	virtual int createOneAvFile(Avdata* pdata,char* filename)=0;
 	virtual unsigned int getCurWriAvFileLen()=0;
-	FILE* m_pFile;
 	unsigned int m_curWriLen;
 };
 

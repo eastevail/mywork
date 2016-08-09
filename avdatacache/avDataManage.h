@@ -15,10 +15,11 @@ public:
 	avDataManage();
 	virtual ~avDataManage();
 	int init();
-	int saveOneAvdataToCach();
+	int run();
 private:
 	avDataPro* m_pVideoPro;
 	cacheManage* m_pcacheserver;
+	int saveOneAvdataToCach();
 	uint8_t m_bufV[VIDEOBUFFMAX];
 	uint8_t m_bufA[AUDIOBUFFMAX];
 };

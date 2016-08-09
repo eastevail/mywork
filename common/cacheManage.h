@@ -73,6 +73,7 @@ private:
 	AVIndex* pindexInSh;
 	int waitForNextAvFrame(); //call by getOneAvdata
 	int setAvdataLen();
+	int setOldestId();
 	uint32_t getIndexFromeId(uint32_t id);
 	int shInit();
 	int semInit();

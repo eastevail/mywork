@@ -46,7 +46,7 @@ typedef enum
 #define SD_DEVNAME "/dev/mmcblk0p5"
 #define CUR_SAVE_PATH ROOT_SAVE_PATH"/DCIM"
 #define MAX_INDEX       999
-#define MAX_AVFILE_LEN (1*1024*1024)
+#define MAX_AVFILE_LEN (100*1024*1024)
 class recordManage
 {
 public:
@@ -66,7 +66,7 @@ private:
 	int initcurFileIndex();
 	uint32_t m_curMaxFileIndex;
 	uint32_t m_curMaxDCIMIndex;
-	unsigned char m_FileName[128];
+	char m_FileName[128];
 	aviFormatOp* m_pAviOp;
 	cacheManage* m_pCacheClient;
 	Avdata m_Avdata;

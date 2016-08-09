@@ -16,11 +16,15 @@ aviFormatOp::aviFormatOp()
 aviFormatOp::~aviFormatOp()
 {
 	// TODO Auto-generated destructor stub
+	if (out_fd) {
+		AVI_close(out_fd);
+	}
 }
 
 int aviFormatOp::init()
 {
 	bzero(lastCallFilename,sizeof(lastCallFilename));
+	out_fd=NULL;
 	return 0;
 }
 
@@ -28,36 +32,29 @@ unsigned int aviFormatOp::getCurWriAvFileLen()
 {
 	return m_curWriLen;
 }
-int aviFormatOp::createOneAvFile(Avdata* pdata,unsigned char* filename)
+int aviFormatOp::createOneAvFile(Avdata* pdata,char* filename)
 {
-	int ret;
 	if (strncasecmp((const char*) lastCallFilename, (const char*) filename,
 			strlen((const char*) filename))) {
-		if (m_pFile) {
-			fflush(m_pFile);
-			fclose(m_pFile);
+		if (out_fd) {
+			AVI_close(out_fd);
 		}
-		m_pFile = fopen((const char*) filename, "wb");
-		if (!m_pFile) {
+		out_fd = AVI_open_output_file(filename); //把文件描述符绑定到此文件上
+		if (out_fd == NULL) {
 			DBGERROR("fopen :%s", strerror(errno));
 			return -1;
 		}
-		m_curWriLen=0;
+		AVI_set_video(out_fd, 320, 240, 15, "MJPG"); //设置视频文件的格式
+
+		m_curWriLen = 0;
 		strncpy(lastCallFilename, (const char*) filename, strlen((const char*) filename));
 	}
-	if (m_pFile) {
-		ret = fwrite(pdata->buffV, 1, pdata->lenV, m_pFile);
-		if (ret != pdata->lenV) {
-			DBGERROR("fwrite error");
+	if (out_fd) {
+		if (AVI_write_frame(out_fd, pdata->buffV, pdata->lenV) < 0) {
+			DBGERROR("write erro");
 			return -1;
 		}
-		m_curWriLen+=ret;
-		fwrite(pdata->buffV, 1, pdata->lenV, m_pFile);
-		if (ret != pdata->lenA) {
-			DBGERROR("fwrite error");
-			return -1;
-		}
-		m_curWriLen+=ret;
+		m_curWriLen += pdata->lenV;
 	}
 	return 0;
 }

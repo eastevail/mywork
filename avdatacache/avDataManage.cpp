@@ -35,6 +35,15 @@ int avDataManage::init()
 	bzero(m_bufA,sizeof(m_bufA));
 	return 0;
 }
+
+int 	avDataManage::run()
+{
+	while(1){
+		saveOneAvdataToCach();
+	}
+	return 0;
+}
+
 int avDataManage::saveOneAvdataToCach()
 {
 	Avdata av;

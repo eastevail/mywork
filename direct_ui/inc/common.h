@@ -69,11 +69,13 @@ typedef unsigned int BOOL;
 #ifndef FALSE
 #define FALSE           0
 #endif
-
+#include"../../common/debug.h"
+/*
 #define DBG(fmt, args...) \
     do{  \
         fprintf(stdout, "[-DBG-] [%s:%5d] --- " fmt"\n", __FILE__, __LINE__, ## args);  \
     }while(0)
+*/
 
 #define ERR(fmt, args...) \
     do{ \

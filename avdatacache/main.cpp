@@ -23,18 +23,22 @@ int main(){
     sigAction.sa_flags = 0;
     sigemptyset((sigset_t *)&sigAction.sa_mask);
     sigaddset((sigset_t *)&sigAction.sa_mask, SIGINT);
+    sigaddset((sigset_t *)&sigAction.sa_mask, SIGSEGV);
+    sigaddset((sigset_t *)&sigAction.sa_mask, SIGKILL);
+    sigaddset((sigset_t *)&sigAction.sa_mask, SIGTERM);
+    sigaddset((sigset_t *)&sigAction.sa_mask, SIGQUIT);
+
     sigaction(SIGINT, &sigAction, NULL);
     sigaction(SIGSEGV, &sigAction, NULL);
     sigaction(SIGKILL, &sigAction, NULL);
+    sigaction(SIGTERM, &sigAction, NULL);
+    sigaction(SIGQUIT, &sigAction, NULL);
     pav= new avDataManage();
-    DBG();
     if(pav->init()<0){
     	return -1;
     }
-    DBG();
-	while(1){
-		pav->saveOneAvdataToCach();
-	}
+    pav->run();
+
 	delete pav;
 	return 0;
 }

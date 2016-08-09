@@ -123,7 +123,7 @@ int recordManage::getOneAvdata()
 	m_Avdata.lenA = AUDIOBUFFMAX;
 	m_Avdata.lenV = VIDEOBUFFMAX;
 	if (first) {
-		m_Avdata.id = 0;
+		m_Avdata.id = CACHEERRORNUM;
 		first = 0;
 	}
 	 int ret=m_pCacheClient->getOneAvdata(&m_Avdata);
@@ -141,6 +141,7 @@ int 	recordManage::run()
 		ret =getOneAvdata();
 		if(-1==ret){
 			usleep(10000);//10ms
+			continue;
 		}else{
 			CHECKRET(ret);
 		}
@@ -307,6 +308,7 @@ int 	recordManage::getFileName()
 			return 0;
 		}
 	}
+	DBG("size is %d",m_pAviOp->getCurWriAvFileLen());
 	bzero(m_FileName, sizeof(m_FileName));
 	m_curMaxFileIndex++;
 	if (m_curMaxFileIndex < 1 || m_curMaxFileIndex > MAX_INDEX) {

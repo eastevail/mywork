@@ -116,14 +116,28 @@ int cacheManage::saveOneAudioFrame(unsigned char* start, int len, int index)
 
 uint32_t cacheManage::getIndexFromeId(uint32_t id)
 {
-	return id%INDEXNUM;
+		return (id) % INDEXNUM;
+}
+
+//when call the function,must semp first and then semv
+int cacheManage::setOldestId()
+{
+	uint32_t index = getIndexFromeId(pindexInSh->newestId);
+	if(CACHEERRORNUM==pindexInSh->index[index].id){
+		pindexInSh->oldestId=pindexInSh->index[0].id;
+	}else{
+		pindexInSh->oldestId=pindexInSh->index[index].id;
+	}
+	return 0;
 }
 int cacheManage::saveOneAvdata(Avdata* pdata)
 {
 	if (currentType == server) {
+		semP(INDEXNUM);
 		if (pindexInSh->newestId == CACHEERRORNUM)
 			pindexInSh->newestId = 0;
 		uint32_t index = getIndexFromeId(pindexInSh->newestId);
+		semV(INDEXNUM);
 		if ((pdata->lenA + pdata->lenV) > (VIDEOBUFFMAX + AUDIOBUFFMAX)) {
 			DBGERROR("av length is big than cache len\n");
 			return -1;
@@ -131,7 +145,11 @@ int cacheManage::saveOneAvdata(Avdata* pdata)
 		semP(index);
 		saveOneVideoFrame(pdata->buffV, pdata->lenV, index);
 		saveOneAudioFrame(pdata->buffA, pdata->lenA, index);
+		pindexInSh->index[index].id=pindexInSh->newestId;
+		semP(INDEXNUM);
 		pindexInSh->newestId++;
+		setOldestId();
+		semV(INDEXNUM);
 		semV(index);
 		return 0;
 	} else {
@@ -141,11 +159,25 @@ int cacheManage::saveOneAvdata(Avdata* pdata)
 int cacheManage::getOneAvdata(Avdata* pdata)
 {
 	if (currentType == client) {
-		uint32_t index = getIndexFromeId(pdata->id);
-		if(index>=pindexInSh->newestId){
-			DBGERROR("no more cache ,wait a monment\n");
+		if(CACHEERRORNUM==pdata->id){
+			//first
+			semP(INDEXNUM);
+			pdata->id=pindexInSh->oldestId;
+			semV(INDEXNUM);
+		}
+		semP(INDEXNUM);
+		if(pdata->id>=pindexInSh->newestId){
+			//DBGERROR("no more cache ,wait a monment\n");
+			semV(INDEXNUM);
 			return -1;
 		}
+		if(pdata->id<pindexInSh->oldestId){
+			DBGERROR("id is smaller than oldest id,get shall faster");
+			pdata->id=pindexInSh->oldestId;
+		}
+		uint32_t index = getIndexFromeId(pdata->id);
+		semV(INDEXNUM);
+
 		if ((pdata->lenA + pdata->lenV) < (VIDEOBUFFMAX + AUDIOBUFFMAX)) {
 			DBGERROR("av length is small than cache len\n");
 			return -2;
@@ -204,7 +236,7 @@ int cacheManage::shInit()
 	    pindexInSh->newestId=CACHEERRORNUM;
 	    pindexInSh->oldestId=CACHEERRORNUM;
 	    for(int i=0;i<INDEXNUM;i++){
-	    	pindexInSh->index[i].id=i;
+	    	pindexInSh->index[i].id=CACHEERRORNUM;
 	    	pindexInSh->index[i].offV=indexlen+i*avdataLen;
 	    	pindexInSh->index[i].lenV=VIDEOBUFFMAX;
 	    	pindexInSh->index[i].offA=pindexInSh->index[i].offV+pindexInSh->index[i].lenV;
@@ -232,13 +264,13 @@ int cacheManage::semInit()
 	}
 		break;
 	case server: {
-		semid = semget((key_t) SEMSMEMKEY, INDEXNUM, 0666 | IPC_CREAT | IPC_EXCL);
+		semid = semget((key_t) SEMSMEMKEY, INDEXNUM+1, 0666 | IPC_CREAT | IPC_EXCL);
 		if (semid == -1) {
 			perror("semget error in server:");
 			return -1;
 		}
 		struct semid_ds seminfo;
-		unsigned short ptr[INDEXNUM];
+		unsigned short ptr[INDEXNUM+1];
 		union semun arg;
 		arg.buf = &seminfo;
 		//获取信号量集的相关信息
@@ -249,7 +281,7 @@ int cacheManage::semInit()
 
 		arg.array = ptr;
 		//初始化信号量的值
-		for (int i = 0; i < INDEXNUM; i++) {
+		for (int i = 0; i < INDEXNUM+1; i++) {
 			ptr[i] = 1;
 		}
 		//通过arg设置信号量集合

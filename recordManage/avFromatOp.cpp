@@ -10,16 +10,11 @@
 avFromatOp::avFromatOp()
 {
 	// TODO Auto-generated constructor stub
-	m_pFile=NULL;
 	m_curWriLen =0;
 }
 
 avFromatOp::~avFromatOp()
 {
 	// TODO Auto-generated destructor stub
-	if (m_pFile){
-		fflush(m_pFile);
-		fclose(m_pFile);
-	}
 }
 

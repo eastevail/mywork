@@ -9,17 +9,20 @@
 #define TBAPP_RECORDMANAGE_AVIFORMATOP_H_
 
 #include "avFromatOp.h"
-
+extern "C" {
+#include"avilib/avilib.h"
+}
 class aviFormatOp: public avFromatOp
 {
 public:
 	aviFormatOp();
 	virtual ~aviFormatOp();
 	virtual int init();
-	virtual int createOneAvFile(Avdata* pdata, unsigned char* filename);
+	virtual int createOneAvFile(Avdata* pdata, char* filename);
 	virtual unsigned int getCurWriAvFileLen();
 private:
 	char lastCallFilename[128];
+	avi_t *out_fd;
 };
 
 #endif /* TBAPP_RECORDMANAGE_AVIFORMATOP_H_ */
