@@ -18,6 +18,7 @@ aviFormatOp::~aviFormatOp()
 	// TODO Auto-generated destructor stub
 	if (out_fd) {
 		AVI_close(out_fd);
+		sync();
 	}
 }
 
@@ -38,13 +39,14 @@ int aviFormatOp::createOneAvFile(Avdata* pdata,char* filename)
 			strlen((const char*) filename))) {
 		if (out_fd) {
 			AVI_close(out_fd);
+			sync();
 		}
 		out_fd = AVI_open_output_file(filename); //把文件描述符绑定到此文件上
 		if (out_fd == NULL) {
 			DBGERROR("fopen :%s", strerror(errno));
 			return -1;
 		}
-		AVI_set_video(out_fd, 320, 240, 15, "MJPG"); //设置视频文件的格式
+		AVI_set_video(out_fd, 320, 240, 25, "MJPG"); //设置视频文件的格式
 
 		m_curWriLen = 0;
 		strncpy(lastCallFilename, (const char*) filename, strlen((const char*) filename));
