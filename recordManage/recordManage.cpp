@@ -18,6 +18,7 @@ recordManage::recordManage()
 	bzero(&m_Avdata,sizeof(m_Avdata));
 	bzero(m_FileName,sizeof(m_FileName));
 	first = 1;
+	m_curMaxFileIndex =0;
 }
 
 recordManage::~recordManage()
@@ -261,6 +262,9 @@ static int searchDCIMNumber(char *path)
 
 int recordManage::initcurFileIndex()
 {
+	int ret;
+	ret=generate_record_dir(CUR_SAVE_PATH);
+	CHECKRET(ret);
 	m_curMaxFileIndex = searchRECFileNumber(CUR_SAVE_PATH);
 	CHECKRET(m_curMaxFileIndex);
 	m_curMaxDCIMIndex = searchDCIMNumber(ROOT_SAVE_PATH);
