@@ -1,0 +1,12 @@
+<outputconf>
+<vlc>
+<sn>sky123456789</sn>
+<ip>127.0.0.1</ip>
+<port>8765</port>
+</vlc>
+<vlc>
+<sn>sky123456789</sn>
+<ip>127.0.0.1</ip>
+<port>8766</port>
+</vlc>
+</outputconf>

@@ -1,0 +1,77 @@
+/*
+ * CTcpAccepEvt.h
+ *
+ *  Created on: 2015年10月23日
+ *      Author: lixiang
+ */
+
+#ifndef TCPRELAYMODULE_CTCPACCEPEVT_H_BAK_
+#define TCPRELAYMODULE_CTCPACCEPEVT_H_BAK_
+#include "CEventBase.h"
+#include "CMangEVT.h"
+#include "CRtpQueue.h"
+asfdasf
+namespace myselfstock
+{
+#define MAXLEN 1500
+#define FIRSTRDLEN 33
+#define GETRTPDATAERRNUMMAX 1000
+class CSkyRtcpAnaly;
+class CTcpAccepEvt: public CEventBase
+{
+public:
+    CTcpAccepEvt(int acceptsockt);
+    ~CTcpAccepEvt();
+    static void CallbackAcept(evutil_socket_t fd, short event, void *arg);
+    virtual int Init();
+    virtual int CreateEvt();
+    virtual int CloseEvt();
+    enum { FIRSTREAD,AWAITING_DOLLAR, AWAITING_STREAM_CHANNEL_ID, AWAITING_SIZE1, AWAITING_SIZE2, AWAITING_PACKET_DATA } ;
+//    virtual int SetTimeOut(int second);
+    virtual int GetType();
+    virtual event_callback_fn GetCallbackAddr();
+    int ReadData();
+    int WriteData();
+    int SendToApp();
+    int SendToIpc();
+    int GetDeviceInfo();
+    int WritedData();
+    bool m_IsGetIpcAccordSN_ed;
+    char m_DeviceTyp;//0x01表示是app，0x02表示ipc
+    int m_Kbps;//ipc
+    CMangEVT* m_pMangEVT;
+private:
+    struct sockaddr_in m_WzaIp;
+    int SendToAppOnly();
+    int SendToIpcOnly();
+    int m_RtpAlreadySend;
+    CRtpQueue* m_pRtpQue;
+    int GetRtpInfo(uint8_t* prtpdata,uint64_t &rtpseq,bool &isIframe);
+    int SendToRtpQue(unsigned short len,uint8_t* rtpdata);//len and rtpdata include 4 bytes head
+    char m_recvfirst[FIRSTRDLEN];
+    uint8_t m_recvbuf[MAXLEN];
+    bool m_IsLastTimeWr;
+    int m_GetRTPdataErrNum;
+    RTP_INFO* m_pRtpInfo;
+    RTCP_INFO* m_pRtcp;
+    CSkyRtcpAnaly* m_pSRtcpAna;
+    struct timeval m_Last;
+    struct timeval m_Now;
+    struct timeval m_OneSc;
+    uint64_t m_RtpSeq;
+    int m_ReadNumOneSc;
+    int m_AlreadyNum;
+    int m_AlreadyNumFirst;
+    int m_WzaPort;
+    int m_UdpCliSckt;
+    unsigned short m_fNextTCPReadSize;
+    unsigned short m_SendTCPReadSize;
+    u_int8_t m_fStreamChannelId;//0x00 rtp;0x01 rtcp
+    u_int8_t m_fSizeByte1;
+    int volatile  fTCPReadingState;
+
+};
+
+} /* namespace myselfstock */
+
+#endif /* TCPRELAYMODULE_CTCPACCEPEVT_H_BAK_ */
