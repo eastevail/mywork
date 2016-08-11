@@ -41,7 +41,7 @@ unsigned char *pVideoBuffer,*backupVideoBuffer;
 unsigned int fb_paddress;
 __u32 xres, yres,jpeg_buffer_size;
 __u32 appOffset[10],appSize[10], appNUm;
-jpeg_info_t *jpeginfo;	
+jpeg_info_t *jpeginfo=NULL;
 unsigned char *pJpegBuffer = NULL, *pSRCbuffer = NULL, *pJpegSWaddr = NULL; 
 char device[] = "/dev/video0";
 unsigned long uVideoSize;
@@ -640,16 +640,16 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 	int ret = 0;
 	int i,len, jpeginfo_size;
 	int width,height, parser;
-/*	FILE *fp;*/
+	FILE *fp;
 
 	memset((void*)&jpeg_param, 0, sizeof(jpeg_param_t));
-	jpeginfo_size = sizeof(jpeg_info_t) + sizeof(__u32);
-	jpeginfo = malloc(jpeginfo_size);
-
+	if (!jpeginfo) {
+		jpeginfo_size = sizeof(jpeg_info_t) + sizeof(__u32 );
+		jpeginfo = malloc(jpeginfo_size);
+	}
 	if(mode == TEST_NORMAL_DECODE || mode == TEST_DECODE_DOWNSCALE || mode == TEST_DECODE_OUTPUTWAIT || mode == TEST_DECODE_DOWNSCALE_FB) 	/* Decode operation Test */
 	{
-		char *filename = "./thumb0.jpg";
-		char *filenameOPW = "./thumb0.jpg";
+		char *filename = "/mnt/tmp/test.jpg";
 		int DecOPWbuffersize;
 
 		jpeg_param.encode = 0;			/* Decode Operation */
@@ -665,20 +665,6 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 			jpeg_param.scaled_width = 320;	/* width after scaling */
 			jpeg_param.scaled_height = 240;	/* height after scaling */
 			jpeg_param.dec_stride = xres;	/* Enable stride function */
-		}
-		else if (mode == TEST_DECODE_OUTPUTWAIT)
-		{
-			jpeg_param.src_bufsize = 600*1024;	/* Src buffer size (Bitstream buffer size for JPEG engine) */
-			jpeg_param.dst_bufsize = 200*1024;	/* Dst buffer size (Decoded Raw data buffer size for JPEG engine) */
-			jpeg_param.decInWait_buffer_size = 0;	/* Decode input Wait buffer size (Decode input wait function disable when
-								   decInWait_buffer_size is 0) */
-			jpeg_param.decopw_en = 1;
-			jpeg_param.scale = 0;		/* Scale function is disabled when scale is 0 */
-		}
-		else					/* Normal Decode */
-		{
-			jpeg_param.dec_stride = 0;	/* Stride function is disabled when dec_stride is 0 */
-			jpeg_param.scale = 0;		/* Scale function is disabled when scale is 0 */
 		}
 
 		/* Total buffer size for JPEG engine */
@@ -696,13 +682,11 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 		if(mode == TEST_DECODE_DOWNSCALE || mode == TEST_DECODE_DOWNSCALE_FB)
 		{
 			memset(pJpegBuffer, 0x77, BufferSize);
-			memset(pVideoBuffer, 0x77, BufferSize);
+			//memset(pVideoBuffer, 0x77, BufferSize);
 		}
 		/* Open JPEG file */
-/*		if (mode == TEST_DECODE_OUTPUTWAIT)
-			fp = fopen(filenameOPW, "r+");
-		else
-			fp = fopen(filename, "r+");
+
+/*			fp = fopen(filename, "r+");
 
 		if(fp == NULL)
     		{
@@ -711,10 +695,17 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
   		}*/
 
 
-		parser = 0;
-		printf("JPEG Header Parser:\n");
-		/* Read Bitstream to JPEG engine src buffer */
+
+
+		memcpy(pJpegBuffer,buff,buflen);
+		bufferCount = buflen;
+		if( bufferCount > jpeg_param.src_bufsize)
 		{
+			printf("Bitstream size is larger than src buffer, %d!!\n",bufferCount);
+			return -1;
+		}
+		//while(!feof(fp))
+		{/*
 			fd_set writefds;
 			struct timeval tv;
 			int result;
@@ -728,12 +719,18 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 			select( fd + 1 , NULL , &writefds , NULL, &tv );
 			if( FD_ISSET( fd, &writefds ))
 			{
-				pJpegBuffer = buff;
+				//pJpegBuffer = buff;
+				memcpy(pJpegBuffer,buff,buflen);
 				bufferCount = buflen;
+
+				readSize = fread(pSRCbuffer, 1, 4096 , fp);
+
+				pSRCbuffer += readSize;
+				bufferCount += readSize;
 			}
 			if(!parser)
 			{
-				result = ParsingJPEG(pJpegBuffer, 4096, &width, &height);
+				result = ParsingJPEG(pJpegBuffer, bufferCount, &width, &height);
 				if(!result)
 				{
 					printf("\t->Width %d, Height %d\n", width,height);
@@ -748,7 +745,7 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 				printf("Bitstream size is larger than src buffer, %d!!\n",bufferCount);
 				return -1;
 			}
-		}
+		*/}
 		printf("Bitstream is 0x%X Bytes\n",bufferCount);
 
 		if(bufferCount % 4)
@@ -759,48 +756,11 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 		jpeg_param.src_bufsize = bufferCount;	/* Src buffer size (Bitstream buffer size for JPEG engine) */
 		jpeg_param.dst_bufsize = BufferSize - bufferCount;	/* Dst buffer size (Decoded Raw data buffer size for JPEG engine) */
 
-		if (mode == TEST_DECODE_OUTPUTWAIT)
-		{
-			if(width % 2)
-				width = (width & 0xFFFFFFFE) + 2;
-
-			jpeg_param.dec_stride = width;	/* Set Decode Output width */
-
-			/* Buffer for target image */
-			DecOPWbuffersize = width * height * 4;
-
-			pJpegSWaddr = malloc(sizeof(char) * DecOPWbuffersize);
-
-			jpeg_param.decopw_TargetBuffersize = DecOPWbuffersize;
-
-			if(pJpegBuffer < 0)
-			{
-				printf("Malloc Failed!\n");
-				ret = -1;
-				goto out;
-			}
-			jpeg_param.decopw_vaddr = (__u32)pJpegSWaddr;
-			printf("jpeg_param.decopw_vaddr 0x%X\n", jpeg_param.decopw_vaddr );
-
-		}
-
-		jpeg_param.buffersize = 0;		/* only for continuous shot */
-    		jpeg_param.buffercount = 1;
+		jpeg_param.buffersize = 0; /* only for continuous shot */
+		jpeg_param.buffercount = 1;
 
 		/* Set decode output format: RGB555/RGB565/RGB888/YUV422/PLANAR_YUV */
 		jpeg_param.decode_output_format = DRVJPEG_DEC_PRIMARY_PACKET_RGB565;
-
-		if(mode == TEST_DECODE_DOWNSCALE_FB)
-		{
-			__u32 u32OutputOffset = 0;
-			u32OutputOffset = (__u32)((xres * ((__u32)(yres - 240) / 2))) + (__u32)((xres - 320) / 2);
-			if(jpeg_param.decode_output_format == DRVJPEG_DEC_PRIMARY_PACKET_RGB888)
-				u32OutputOffset *= 4;
-			else
-				u32OutputOffset *= 2;
-			jpeg_param.paddr_dst = fb_paddress + u32OutputOffset;
-			jpeg_param.vaddr_dst = (__u32)pVideoBuffer + u32OutputOffset;
-		}
 
 		/* Set operation property to JPEG engine */
 		if((ioctl(fd, JPEG_S_PARAM, &jpeg_param)) < 0)
@@ -832,35 +792,17 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 		if(jpeginfo->state == JPEG_DECODED_IMAGE)
 		{
 			printf("Decode Complete\n");
-			if(mode == TEST_DECODE_DOWNSCALE)
-			{
+			if (mode == TEST_DECODE_DOWNSCALE) {
 				printf("Stride %d\n", jpeginfo->dec_stride);
 				printf("Output size is %d x %d\n", xres, jpeginfo->height);
-				memcpy((void*)pVideoBuffer, (char*)(pJpegBuffer + jpeg_param.src_bufsize), jpeginfo->image_size[0]);
+				memcpy((void*) pVideoBuffer, (char*) (pJpegBuffer + jpeg_param.src_bufsize),
+						jpeginfo->image_size[0]);
 				ret = 0;
-/*				ret = Write2File("./DecodeDownscale.dat", pJpegBuffer + jpeg_param.src_bufsize,
-	    			jpeginfo->image_size[0]);*/
+				/*				ret = Write2File("./DecodeDownscale.dat", pJpegBuffer + jpeg_param.src_bufsize,
+				 jpeginfo->image_size[0]);*/
 			}
-			else if (mode == TEST_DECODE_DOWNSCALE_FB)
-			{
-				printf("Stride %d\n", jpeginfo->dec_stride);
-				printf("Output size is %d x %d\n", xres, yres);
-				ret = Write2File("./DecodeDownscaleFB.dat", pVideoBuffer,uVideoSize);
-			}
-			else if(mode == TEST_DECODE_OUTPUTWAIT)
-			{
-				printf("Output size is %d x %d\n", jpeginfo->width, jpeginfo->height);
-		    		ret = Write2File("./DecodeOPW.dat", (unsigned char *)((__u32)pJpegSWaddr), jpeginfo->image_size[0]);
-			}
-			else
-			{
-				printf("Output size is %d x %d\n", jpeginfo->width, jpeginfo->height);
-		    		ret = Write2File("./NormalDecode.dat", pJpegBuffer + jpeg_param.src_bufsize,
-    				jpeginfo->image_size[0]);
 
-			}
-    			if(ret < 0)
-			{
+			if (ret < 0) {
 				printf("write to file, errno=%d\n", errno);
 			}
 		}
@@ -876,177 +818,9 @@ int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
 		}
 
 	}
-	else		/* Encode operation Test */
-	{/*
-		char *filename = "./jpegEnc.dat";
 
-		jpeg_param.encode = 1;			 Encode
-		jpeg_param.src_bufsize = 640*480*2;	 Src buffer (Raw Data)
-		jpeg_param.dst_bufsize = 100*1024;	 Dst buffer (Bitstream)
-		jpeg_param.encode_width = 640;		 JPEG width
-		jpeg_param.encode_height = 480;		 JPGE Height
-		jpeg_param.encode_source_format = DRVJPEG_ENC_SRC_PACKET;	 DRVJPEG_ENC_SRC_PACKET/DRVJPEG_ENC_SRC_PLANAR
-		jpeg_param.encode_image_format = DRVJPEG_ENC_PRIMARY_YUV420;	 DRVJPEG_ENC_PRIMARY_YUV420/DRVJPEG_ENC_PRIMARY_YUV422
-
-		jpeg_param.buffersize = 0;		 only for continuous shot
-    		jpeg_param.buffercount = 1;
-
-		if(mode == TEST_ENCODE_RESERVED)
-		{
-			__u32 u32BitstreamAddr,i;
-			__u8 *u8Ptr;
-			 Reserve memory space for user application
-			   # Reserve memory space Start address is Bit stream Address + 6 and driver will add the app marker (FF E0 xx xx)for user automatically.
-			   # User can set the data before or after trigger JPEG (Engine will not access the reserved memory space).
-			   # The size parameter is the actual size that can used by user and it must be multiple of 2 but not be multiple of 4 (Max is 65530).
-			   # User can get the marker length (reserved length + 2) from byte 4 and byte 5 in the bitstream.
-		   		Byte 0 & 1 :  FF D8
-				Byte 2 & 3 :  FF E0
-				Byte 4 & 5 :  [High-byte of Marker Length][Low-byte of Marker Length]
-		   		Byte 6 ~ (Length + 4)  :  [(Marker Length - 2)-byte Data] for user application
-
-		   		Ex : jpegIoctl(JPEG_IOCTL_ENC_RESERVED_FOR_SOFTWARE, 1024,0);
-			        	FF D8 FF E0 04 02 [1024 bytes]
-
-			printf("Enable Reserved space function\n");
-			enc_reserved_size = 1024;		 JPGE Reserved size for user application
-			printf("Reserved space size %d\n", enc_reserved_size);
-			u32BitstreamAddr = (__u32) pJpegBuffer + jpeg_param.src_bufsize;		 Bistream Address
-			u8Ptr =(__u8 *) (u32BitstreamAddr + 6);		 Pointer for Reserved memory
-
-			for(i=0;i<enc_reserved_size;i++)	 Set data to Reserved Buffer
-				*(u8Ptr + i) = i & 0xFF;
-
-			ioctl(fd, JPEG_SET_ENCOCDE_RESERVED, enc_reserved_size);
-			printf("Bitstream address : 0x%X\n", u32BitstreamAddr);
- 			printf("Reserved memory : 0x%X~ 0x%X\n", u32BitstreamAddr+ 6, (u32BitstreamAddr + 6 + enc_reserved_size));
-		}
-
-		if (mode == TEST_ENCODE_UPSCALE)	 Upscale function
-		{
-			jpeg_param.scaled_width = 800;	 Width after scaling
-			jpeg_param.scaled_height = 600;	 Height after scaling
-			jpeg_param.scale = 1;		 Enable scale function
-		}
-		else
-			jpeg_param.scale = 0;		 Scale function is disabled when scale 0
-
-		if(g_qtflag)
-		{
-			ioctl(fd, JPEG_SET_ENC_USER_QTABLE0, g_au8QT0);
-			ioctl(fd, JPEG_SET_ENC_USER_QTABLE1, g_au8QT1);
-			ioctl(fd, JPEG_ACTIVE_ENC_USER_QTABLE, 0);
-		}
-		else
-			ioctl(fd, JPEG_ACTIVE_ENC_DEFAULTQTABLE, 0);
-
-		 Set operation property to JPEG engine
-		if((ioctl(fd, JPEG_S_PARAM, &jpeg_param)) < 0)
-		{
-			fprintf(stderr,"set jpeg param failed:%d\n",errno);
-			ret = -1;
-			goto out;
-		}
-
-		 Total buffer size for JPEG engine
-		BufferSize = (jpeg_param.src_bufsize + jpeg_param.dst_bufsize);
-
-		if(BufferSize > jpeg_buffer_size)
-		{
-			printf("JPEG Engine Buffer isn't enough\n");
-			goto out;
-		}
-
-		 Open JPEG file
-		fp = fopen(filename, "r+");
-
-		if(fp == NULL)
-    		{
-    			printf("open %s error!\n", fp);
-    			return 0;
-  		}
-
-		pSRCbuffer = pJpegBuffer;
-		bufferCount = 0;
-
-		 Read Bitstream to JPEG engine src buffer
-		while(!feof(fp))
-		{
-			fd_set writefds;
-			struct timeval tv;
-			tv.tv_sec       = 0;
-			tv.tv_usec      = 0;
-			FD_ZERO( &writefds );
-			FD_SET( fd , &writefds );
-			tv.tv_sec       = 0;
-			tv.tv_usec      = 0;
-
-			select( fd + 1 , NULL , &writefds , NULL, &tv );
-			if( FD_ISSET( fd, &writefds ))
-			{
-				readSize = fread(pSRCbuffer, 1, 4096 , fp);
-
-				pSRCbuffer += readSize;
-				bufferCount += readSize;
-			}
-
-			if( bufferCount > jpeg_param.src_bufsize)
-			{
-				printf("Raw Data size is larger than src buffer, %d!!\n",bufferCount);
-				return 0;
-			}
-		}
-
-		 Trigger JPEG engine
-		if((ioctl(fd, JPEG_TRIGGER, NULL)) < 0)
-		{
-			fprintf(stderr,"trigger jpeg failed:%d\n",errno);
-			ret = -1;
-
-			goto out;
-		}
-
-		 Get JPEG Encode information
-
-		len = read(fd, jpeginfo, jpeginfo_size);
-		printf("Encode Complete\n");
-		if(len<0) {
-			fprintf(stderr, "No data can get\n");
-			if(jpeginfo->state == JPEG_MEM_SHORTAGE)
-				printf("Memory Stortage\n");
-			ret = -1;
-			goto out;
-		}
-		if (mode == TEST_ENCODE_UPSCALE)
-			ret = Write2File("./EncodeUpscale.jpg", pJpegBuffer + jpeg_param.src_bufsize,
-				jpeginfo->image_size[0]);
-		else if (mode == TEST_ENCODE_RESERVED)
-		{
-			__u32 u32BitstreamAddr, appMarkerSize;
-			__u8 *u8BistreamPtr;
-			printf("Reserved space information from bitstream\n");
-			u8BistreamPtr = pJpegBuffer + jpeg_param.src_bufsize;	 Bistream Address
-			appMarkerSize = (*(u8BistreamPtr + 4) << 8) + *(u8BistreamPtr + 5);
-			printf("App Marker size (Byte 4 & Byte 5) : %d\n",appMarkerSize);
-			printf("Reserved size (App Marker size -2): %d\n",appMarkerSize - 2);
-			printf("Reserved buffer : Byte 6 ~ %d\n", (6 + appMarkerSize - 2));
-
-			ret = Write2File("./NormalEncodeReserved.jpg", pJpegBuffer + jpeg_param.src_bufsize,
-				jpeginfo->image_size[0]);
-
-		}
-		else
-			ret = Write2File("./NormalEncode.jpg", pJpegBuffer + jpeg_param.src_bufsize,
-				jpeginfo->image_size[0]);
-		if(ret < 0)
-		{
-			printf("write to file, errno=%d\n", errno);
-		}
-	*/}
 out:
-	free(jpeginfo);
-	if(mode == TEST_DECODE_OUTPUTWAIT)
-		free(pJpegSWaddr);
+
 	return ret;
 
 }
@@ -2506,6 +2280,8 @@ int unInitJpegCodec()
 		free(backupVideoBuffer);
 	if (pJpegBuffer)
 		munmap(pJpegBuffer, jpeg_buffer_size);
+	if (jpeginfo)
+		free(jpeginfo);
 	return 0;
 }
 
