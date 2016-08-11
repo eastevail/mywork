@@ -7,7 +7,7 @@
 
 #ifndef TBAPP_RECORDMANAGE_RECORDMANAGE_H_
 #define TBAPP_RECORDMANAGE_RECORDMANAGE_H_
-#include "aviFormatOp.h"
+#include "../common/aviFormatOp.h"
 // dev record const
 typedef enum
 {

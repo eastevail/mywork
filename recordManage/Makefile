@@ -22,6 +22,7 @@ STRIP	= $(PREFIX)strip
 #   ������ʱ�ļ�
 #============================================================================
 C_SRC		= $(shell find ./avilib -name "*.c")
+C_SRC		+= $(shell find ../common/avilib -name "*.c")
 C_OBJS		= $(C_SRC:%.c=%.o)
 
 CPP_SRC		= $(shell find ./ -name "*.cpp")
