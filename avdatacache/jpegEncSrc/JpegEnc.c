@@ -13,6 +13,8 @@
  *
  */
 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -28,8 +30,8 @@
 #include <sys/statfs.h>
 
 #include <linux/videodev.h>
-#include "JpegEnc.h"
 #include "dsc.h"
+#include "JpegEnc.h"
 
 static uint8_t *s_pu8JpegEncBuf = MAP_FAILED;
 static int32_t s_i32JpegFd = -1;

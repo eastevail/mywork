@@ -8,7 +8,7 @@
 #ifndef TBAPP_AVDATACACHE_JPEGPRO_H_
 #define TBAPP_AVDATACACHE_JPEGPRO_H_
 
-#include "avDataPro.h"
+#include "../common/avDataPro.h"
 
 class jpegPro: public avDataPro
 {

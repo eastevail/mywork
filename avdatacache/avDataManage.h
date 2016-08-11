@@ -7,8 +7,8 @@
 
 #ifndef TBAPP_AVDATACACHE_AVDATAMANAGE_H_
 #define TBAPP_AVDATACACHE_AVDATAMANAGE_H_
+#include "../common/avDataPro.h"
 #include "../common/cacheManage.h"
-#include "avDataPro.h"
 class avDataManage
 {
 public:

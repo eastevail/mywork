@@ -3,6 +3,8 @@
  * Copyright (c) Nuvoton Technology Corp.  All rights reserved. *
  *                                                              *
  ****************************************************************/
+#include "dsc.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -13,7 +15,6 @@
 #include <string.h>
 #include <linux/msdos_fs.h>
 
-#include "dsc.h"
 
 #define AVUtil_Malloc malloc
 #define AVUtil_Free free

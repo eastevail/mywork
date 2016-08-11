@@ -6,8 +6,9 @@
  */
 
 #include "jpegPro.h"
+#include "../common/tb_tpye.h"
 extern "C" {
-#include"jpegProSrc/vin_demo.h"
+#include"jpegEncSrc/vin_demo.h"
 }
 jpegPro::jpegPro()
 {
@@ -28,5 +29,5 @@ int jpegPro::getOneVideoFrameFromDri(int rot_num,uint8_t* start, uint32_t *len)
 
 int jpegPro::init()
 {
-	return initJpegPro();
+	return initJpegPro(eIMAGE_QVGA);
 }

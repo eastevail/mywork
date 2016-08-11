@@ -10,9 +10,9 @@
 #include <signal.h>
 #include <linux/fb.h>
 #include <unistd.h>
-#include "w55fa92_vpe.h"
-
 #include "port.h"
+#include "port.h"
+#include "w55fa92_vpe.h"
 //#include "h264.h"
 
 #define DBGPRINTF(...)

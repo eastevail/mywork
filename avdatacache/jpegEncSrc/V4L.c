@@ -13,7 +13,7 @@
  *
  */
 
-#include <unistd.h>  
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -24,11 +24,9 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <inttypes.h>
-
-
+#include "FB_IOCTL.h"
 #include "Misc.h"
 #include "V4L.h"
-#include "FB_IOCTL.h"
 #define VID_DEVICE "/dev/video0"
 
 

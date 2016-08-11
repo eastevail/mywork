@@ -16,6 +16,7 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 #include "../../common/debug.h"
+#include "../../common/tb_tpye.h"
 //#define DEBUG_PRINT(x, ...) fprintf(stdout, x, ##__VA_ARGS__)
 //#define DEBUG_PRINT(x, ...)
 
@@ -58,14 +59,7 @@
 #define RIGHT_KEY		2
 #endif
 
-typedef enum
-{
-	eIMAGE_QVGA,
-	eIMAGE_WQVGA,
-	eIMAGE_VGA,
-	eIMAGE_SVGA,
-	eIMAGE_HD720
-}E_IMAGE_RESOL;
+
 
 #endif
 

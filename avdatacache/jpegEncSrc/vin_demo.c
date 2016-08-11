@@ -12,6 +12,8 @@
  * (at your option) any later version.
  *
  */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,12 +31,12 @@
 #include <linux/videodev.h>
 #include <signal.h>
 
-#include "Misc.h"
+#include "dsc.h"
 #include "FB_IOCTL.h"
 #include "JpegEnc.h"
-#include "dsc.h"
+#include "Misc.h"
 #include "V4L.h"
-#include"vin_demo.h"
+#include "vin_demo.h"
 #define DEFAULT_SAVE_FOLDER "/mnt/sdcard/dsc"
 
 /*static int savefd;*/
@@ -771,12 +773,12 @@ static uint8_t *pu8PicPtr;
 static uint64_t u64TS;
 static uint32_t u32PicPhyAdr;
 static char *p8SrcBuf_vpe;
-int initJpegPro()
+int initJpegPro(E_IMAGE_RESOL resol)
 {
 	int32_t i32Opt;
-	E_IMAGE_RESOL ePreviewImgResol = eIMAGE_QVGA;
+	E_IMAGE_RESOL ePreviewImgResol = resol;
 //	E_IMAGE_RESOL eEncodeImgResol = eIMAGE_VGA;
-	E_IMAGE_RESOL eEncodeImgResol = eIMAGE_QVGA;
+	E_IMAGE_RESOL eEncodeImgResol = resol;
 	
 	int32_t i32SensorId;
 	//S_PIPE_INFO s_packetInfo;
