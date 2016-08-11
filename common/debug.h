@@ -14,9 +14,7 @@
 #define _DEBUG_H
 
 
-#ifdef __cplusplus
-extern "C"{
-#endif 
+
 
 #ifndef APPNAME
 #define APPNAME "[-DBG-]"
@@ -36,9 +34,7 @@ extern "C"{
 #define CHECKRET(x) \
 	if(x<0){ DBGERROR();return -1;}
 
-#ifdef __cplusplus
-}
-#endif 
+
 
 #endif
 
