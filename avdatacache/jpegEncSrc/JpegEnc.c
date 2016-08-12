@@ -33,7 +33,7 @@
 #include "dsc.h"
 #include "JpegEnc.h"
 
-static uint8_t *s_pu8JpegEncBuf = MAP_FAILED;
+uint8_t *s_pu8JpegEncBuf = MAP_FAILED;
 static int32_t s_i32JpegFd = -1;
 static uint32_t s_u32JpegBufSize;
 static jpeg_param_t s_sJpegParam;
@@ -958,7 +958,7 @@ out:
 
 }
 
-int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char *dstbuf,int* pdstbuflen)
+int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char **dstbuf,int* pdstbuflen)
 {
 	unsigned long BufferSize, bufferCount, readSize;
 	int enc_reserved_size;
@@ -1037,10 +1037,10 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char *dstbuf,int* pds
 		goto out;
 	}
 
-	pSRCbuffer = s_pu8JpegEncBuf;
+/*	pSRCbuffer = s_pu8JpegEncBuf;
 	bufferCount = 0;
 
-	memcpy(pSRCbuffer, pu8PicPtr, s_sJpegParam.src_bufsize);
+	memcpy(pSRCbuffer, pu8PicPtr, s_sJpegParam.src_bufsize);*/
 	if ((ioctl(s_i32JpegFd, JPEG_TRIGGER, NULL)) < 0) {
 		fprintf(stderr, "trigger jpeg failed:%d\n", errno);
 		ret = -1;
@@ -1064,9 +1064,10 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char *dstbuf,int* pds
 	u8BistreamPtr = s_pu8JpegEncBuf + s_sJpegParam.src_bufsize; /* Bistream Address */
 	appMarkerSize = (*(u8BistreamPtr + 4) << 8) + *(u8BistreamPtr + 5);
 
-	if (*pdstbuflen >=s_pJpegInfo->image_size[0]) {
+	if (*pdstbuflen >= s_pJpegInfo->image_size[0]) {
 		*pdstbuflen = s_pJpegInfo->image_size[0];
-		memcpy(dstbuf, s_pu8JpegEncBuf + s_sJpegParam.src_bufsize, s_pJpegInfo->image_size[0]);
+		*dstbuf = s_pu8JpegEncBuf + s_sJpegParam.src_bufsize;
+		//memcpy(dstbuf, s_pu8JpegEncBuf + s_sJpegParam.src_bufsize, s_pJpegInfo->image_size[0]);
 	}else{
 		printf("buffer is small\n");
 		ret =-1;

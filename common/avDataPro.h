@@ -14,7 +14,7 @@ public:
 	avDataPro();
 	virtual ~avDataPro();
 	virtual int init()=0;
-	virtual int getOneVideoFrameFromDri(int rot_num,uint8_t* start, uint32_t *len);//change len to the real lenth
+	virtual int getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len);//change len to the real lenth
 	virtual int getOneAudioFrameFromDri(uint8_t* start, uint32_t *len);//change len to the real lenth
 	virtual int displayOneVideoFrame(uint8_t* start, uint32_t len);
 	virtual int displayOneAudioFrame(uint8_t* start, uint32_t len);

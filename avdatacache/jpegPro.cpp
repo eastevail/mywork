@@ -22,7 +22,7 @@ jpegPro::~jpegPro()
 	unInitJpecPro();
 }
 
-int jpegPro::getOneVideoFrameFromDri(int rot_num,uint8_t* start, uint32_t *len)
+int jpegPro::getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len)
 {
 	return getOneJpeg(rot_num,start,len);
 }

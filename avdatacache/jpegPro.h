@@ -16,7 +16,7 @@ public:
 	jpegPro();
 	virtual ~jpegPro();
 	int init();
-	int getOneVideoFrameFromDri(int rot_num,uint8_t* start, uint32_t *len);//rot_num :rotate angle
+	int getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len);//rot_num :rotate angle
 private:
 };
 

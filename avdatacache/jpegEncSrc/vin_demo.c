@@ -40,7 +40,7 @@
 #define DEFAULT_SAVE_FOLDER "/mnt/sdcard/dsc"
 
 /*static int savefd;*/
-
+extern uint8_t *s_pu8JpegEncBuf;
 static int s_i32FBWidth;
 static int s_i32FBHeight;
 static S_JPEG_ENC_FEAT s_sJpegEncFeat;
@@ -1023,7 +1023,7 @@ int unInitJpecPro()
 	return 0;
 }
 
-int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
+int getOneJpeg(int rot_num,uint8_t** buff,uint32_t* buflen)
 {
 	// refresh image
 
@@ -1034,28 +1034,28 @@ int getOneJpeg(int rot_num,uint8_t* buff,uint32_t* buflen)
 		getfps();
 		switch (rot_num) {
 		case 0:
-			FormatConversion_up_QVGA(pu8PicPtr, p8SrcBuf_vpe, 320, 240); //ok
+			FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		case 1:
-			FormatConversion_right_QVGA(pu8PicPtr, p8SrcBuf_vpe, 180, 240); //ok
+			FormatConversion_right_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 180, 240); //ok
 			//FormatConversion_right_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 180, 240); //
 			break;
 		case 2:
-			FormatConversion_down_QVGA(pu8PicPtr, p8SrcBuf_vpe, 320, 240); //ok
+			FormatConversion_down_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
 			//FormatConversion_down_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		case 3:
-			FormatConversion_left_QVGA(pu8PicPtr, p8SrcBuf_vpe, 180, 240); //ok
+			FormatConversion_left_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 180, 240); //ok
 			//FormatConversion_left_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 180, 240); //ok
 			break;
 		default:
-			FormatConversion_up_QVGA(pu8PicPtr, p8SrcBuf_vpe, 320, 240); //ok
+			FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
 			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
 			break;
 		}
 
-		jpegCodec_reserved_vpe_QVGA_to_buff(p8SrcBuf_vpe,buff,buflen);
+		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen);
 
 		//jpegCodec_reserved_vpe_QVGA_file(p8SrcBuf_vpe, pchSaveFolder);
 		//memcpy((void*) pu8FBBufAddr, (char*) p8SrcBuf_vpe + u32FBBufSize, u32FBBufSize);

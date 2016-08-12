@@ -53,7 +53,7 @@ int avDataManage::saveOneAvdataToCach()
 	av.lenA=AUDIOBUFFMAX;
 	av.buffV=m_bufV;
 	av.lenV=VIDEOBUFFMAX;
-	m_pVideoPro->getOneVideoFrameFromDri(0,av.buffV,&av.lenV);
+	m_pVideoPro->getOneVideoFrameFromDri(0,&(av.buffV),&av.lenV);
 	//m_pAudioPro
 	m_pcacheserver->saveOneAvdata(&av);
 

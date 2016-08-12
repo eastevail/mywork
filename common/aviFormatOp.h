@@ -10,7 +10,7 @@
 
 #include "avFromatOp.h"
 extern "C" {
-#include"avilib/avilib.h"
+#include"thirdlib/build/include/avilib.h"
 }
 class aviFormatOp: public avFromatOp
 {

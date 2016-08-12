@@ -10,7 +10,7 @@
 #include<stdint.h>
 
 int initJpegPro(E_IMAGE_RESOL resol);
-int getOneJpeg(int rot_num, uint8_t* buff, uint32_t* buflen);
+int getOneJpeg(int rot_num, uint8_t** buff, uint32_t* buflen);
 int unInitJpecPro();
 
 

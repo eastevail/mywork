@@ -22,7 +22,7 @@ STRIP	= $(PREFIX)strip
 #   ������ʱ�ļ�
 #============================================================================
 C_SRC		= $(shell find ./jpegEncSrc -name "*.c")
-C_SRC		+= $(shell find ../common/avilib -name "*.c")
+C_SRC		+= $(shell find ../common/ -name "*.c")
 C_OBJS		= $(C_SRC:%.c=%.o)
 
 CPP_SRC		= $(shell find ./ -name "*.cpp")
@@ -32,7 +32,7 @@ CPP_OBJS	= $(CPP_SRC:%.cpp=%.o)
 #============================================================================
 #   ���ҵ�ǰ·���µ�ͷ�ļ�·��
 #============================================================================
-INC_DIRS	= 
+INC_DIRS	=  $(TB_APPDIR)/common/thirdlib/build/include
 INC_DIRS	:= $(foreach incdir, $(INC_DIRS), -I$(incdir))
 #============================================================================
 #   �ⲿͷ�ļ���·��
@@ -46,9 +46,10 @@ EXTRA_INC_DIRS	:= $(foreach incdir, $(EXTRA_INC_DIRS), -I$(incdir))
 #============================================================================
 
 EXTRA_LIB_DIRS	+= /usr/local/arm_linux_4.2/arm-linux/lib
+EXTRA_LIB_DIRS	+= $(TB_APPDIR)/common/thirdlib/build/lib
 EXTRA_LIB_DIRS	:= $(foreach incdir, $(EXTRA_LIB_DIRS), -L$(incdir))
 
-EXTRA_LIBS	+= -lpthread
+EXTRA_LIBS	+= -lpthread -lavilib -levent
 
 #EXTRA_LIBS	+= $(TB_APPDIR)/server/lib/src/timechip/cw_timechip.o
 
