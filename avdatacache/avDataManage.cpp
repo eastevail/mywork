@@ -47,15 +47,26 @@ int 	avDataManage::run()
 int avDataManage::saveOneAvdataToCach()
 {
 	Avdata av;
-	bzero(m_bufV,sizeof(m_bufV));
-	bzero(m_bufA,sizeof(m_bufA));
-	av.buffA=m_bufA;
-	av.lenA=AUDIOBUFFMAX;
-	av.buffV=m_bufV;
-	av.lenV=VIDEOBUFFMAX;
-	m_pVideoPro->getOneVideoFrameFromDri(0,&(av.buffV),&av.lenV);
+	int msg = 0;
+	bzero(m_bufV, sizeof(m_bufV));
+	bzero(m_bufA, sizeof(m_bufA));
+	av.buffA = m_bufA;
+	av.lenA = AUDIOBUFFMAX;
+	av.buffV = m_bufV;
+	av.lenV = VIDEOBUFFMAX;
+	m_pVideoPro->setDisplayZoom(NOZOOM);
+	if (!msg) {
+		//normal
+		m_pVideoPro->enableVideoForRec();
+		m_pVideoPro->getOneVideoFrameFromDri(0, &(av.buffV), &av.lenV);
+		m_pVideoPro->disableVideoForRec();
+	} else {
+		//photo
+		m_pVideoPro->enableVideoForPhoto();
+		m_pVideoPro->getOneVideoFrameFromDri(0, &(av.buffV), &av.lenV);
+		m_pVideoPro->disableVideoForPhoto();
+	}
 	//m_pAudioPro
 	m_pcacheserver->saveOneAvdata(&av);
-
 	return 0;
 }

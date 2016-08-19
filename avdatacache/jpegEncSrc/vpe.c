@@ -13,6 +13,8 @@
 #include "port.h"
 #include "port.h"
 #include "w55fa92_vpe.h"
+#include "Misc.h"
+#include "../../common/tb_tpye.h"
 //#include "h264.h"
 
 #define DBGPRINTF(...)
@@ -146,10 +148,10 @@ int FormatConversion(void* data, char* pDstBuf, int Srcwidth, int Srcheight, int
 #define PAT_HEIGHT_VGA		480
 #define PAT_WIDTH		320
 #define PAT_HEIGHT		240
-//#define STEP_WIDTH		32
-//#define STEP_HEIGHT		18
-#define STEP_WIDTH		140
-#define STEP_HEIGHT		0
+#define STEP_WIDTH		32
+#define STEP_HEIGHT		18
+//#define STEP_WIDTH		140
+//#define STEP_HEIGHT		0
 int FormatConversion_up(char* pSrcBuf, char* pDstBuf, int Srcwidth, int Srcheight, int Tarwidth, int Tarheight)
 {
 	//unsigned int volatile vworkbuf, tmpsize;
@@ -451,6 +453,276 @@ int FormatConversion_down(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarhei
 	
 }	
 
+static int setVpeDest(ROTATEDIREC rot_num, int dstW, int dstH,	vpe_transform_t* vpe_setting)
+{
+/*	switch (rot_num) {
+	case UPDIRECTION:
+	case DOWNDIRECTION:{
+		vpe_setting->dest_width = dstW;
+		vpe_setting->dest_height = dstH;
+		vpe_setting->dest_leftoffset = 0;
+		vpe_setting->dest_rightoffset = 0;
+		break;
+	}
+	case RIGHTDIRECTION:
+	case LEFTDIRECTION:{
+		if (rotateForDisplay) {
+			vpe_setting->dest_width = dstW;
+			vpe_setting->dest_height = dstH;
+			vpe_setting->dest_leftoffset = (320 - dstH) / 2;
+			vpe_setting->dest_rightoffset = (320 - dstH) / 2;
+		} else {
+			vpe_setting->dest_width = dstW;
+			vpe_setting->dest_height = dstH;
+			vpe_setting->dest_leftoffset = 0;
+			vpe_setting->dest_rightoffset = 0;
+		}
+		break;
+	}
+	default:
+		break;
+	}*/
+	vpe_setting->dest_width = dstW;
+	vpe_setting->dest_height = dstH;
+	vpe_setting->dest_leftoffset = 0;
+	vpe_setting->dest_rightoffset = 0;
+	switch (rot_num) {
+	case UPDIRECTION:
+		vpe_setting->rotation = VPE_OP_NORMAL;
+		break;
+	case DOWNDIRECTION:
+		vpe_setting->rotation = VPE_OP_UPSIDEDOWN;
+		break;
+	case RIGHTDIRECTION:
+		vpe_setting->rotation = VPE_OP_RIGHT;
+		break;
+	case LEFTDIRECTION:
+		vpe_setting->rotation = VPE_OP_LEFT;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
+static int setStepVal(int* pstep, ZOOMLEVEL zoom)
+{
+	if (zoom % 2 != 0) {
+		*pstep=zoom;
+	} else {
+		*pstep=*pstep-zoom;
+	}
+	if(*pstep<0)
+		*pstep=0;
+	return 0;
+}
+int scalePro(tb_vpe_transform_t* pvpe)
+{
+	unsigned int volatile vworkbuf, tmpsize;
+	unsigned int value, buf=0, ret =0;
+	vpe_transform_t vpe_setting;
+	unsigned int ptr_y, ptr_u, ptr_v;
+	static  int step=0;
+	setStepVal(&step,pvpe->zoomlev);
+	unsigned int g_u32VpostWidth, g_u32VpostHeight;
+	g_u32VpostWidth = 320;
+	g_u32VpostHeight = 240;
+
+	ptr_y = (unsigned int)pvpe->src_addr;
+	ptr_u = ptr_y+(pvpe->src_width)*(pvpe->src_height);		/* Planar YUV422 */
+	ptr_v = ptr_u+(pvpe->src_width)*(pvpe->src_height)/2;
+	// Get Video Decoder IP Register size
+	if( ioctl(vpe_fd, VPE_INIT, NULL)  < 0){
+		close(vpe_fd);
+		printf("VPE_INIT fail\n");
+		ret = -1;
+	}
+	value = 0x5a;
+	if((ioctl(vpe_fd, VPE_IO_SET, &value)) < 0){
+		close(vpe_fd);
+		printf("VPE_IO_SET fail\n");
+		ret = -1;
+	}
+
+	value = 1;
+	ioctl(vpe_fd, VPE_SET_MMU_MODE, &value);
+
+	vpe_setting.src_width = (pvpe->src_width);
+	vpe_setting.src_height=pvpe->src_height;
+	unsigned int test=0;
+
+	while( ((vpe_setting.src_width>=g_u32VpostWidth))&&(vpe_setting.src_height>=g_u32VpostHeight ) ){
+		vpe_setting.src_addrPacY = ptr_y + (pvpe->src_width)*STEP_HEIGHT*step/2;				/* Planar YUV422 */
+		vpe_setting.src_addrU = ptr_u+(pvpe->src_width)/2*STEP_HEIGHT*step/2;
+		vpe_setting.src_addrV = ptr_v+(pvpe->src_width)/2*STEP_HEIGHT*step/2;
+/*		vpe_setting.src_addrU = 0;
+		vpe_setting.src_addrV = 0;*/
+
+	//  vpe_setting.src_format = VPE_SRC_PACKET_YUV422;
+		vpe_setting.src_format = pvpe->src_format;
+		vpe_setting.src_width = (pvpe->src_width) - step*STEP_WIDTH;
+		vpe_setting.src_height = (pvpe->src_height) - step*STEP_HEIGHT;
+
+		vpe_setting.src_leftoffset = step*STEP_WIDTH/2;
+		vpe_setting.src_rightoffset = step*STEP_WIDTH/2;
+		DBGPRINTF("Src dimension = %d x %d\n", vpe_setting.src_width, vpe_setting.src_height);
+		DBGPRINTF("Src offset(L,R) = %d , %d\n", vpe_setting.src_leftoffset, vpe_setting.src_rightoffset);
+
+		if(buf==0){/* Render to the first buffer, VPOST show the 2nd buffer */
+			vpe_setting.dest_addrPac = (unsigned int)pvpe->dest_addr;
+		}
+		else{
+		//	vpe_setting.dest_addrPac = (unsigned int)pDstBuf+ var.xres*var.yres*var.bits_per_pixel/8;
+		}
+		/* if (g_u32VpostHeight > Tarheight)
+         {  // Put image at the center of panel
+             int offset_Y;
+             offset_Y = (g_u32VpostHeight - Tarheight)/2 * g_u32VpostWidth * 2;      // For RGB565
+             vpe_setting.dest_addrPac = (unsigned int)pDstBuf + offset_Y;
+         }
+		*/
+		DBGPRINTF("Buf %x, Start Addr = 0x%x", buf, vpe_setting.dest_addrPac);
+		vpe_setting.dest_format = pvpe->dest_format;
+		//vpe_setting.dest_format = VPE_DST_PACKET_YUV422;
+		//vpe_setting.dest_width = Tarwidth;
+		//vpe_setting.dest_height = Tarheight;
+		//vpe_setting.dest_leftoffset = (g_u32VpostWidth-Tarwidth)/2;
+		//vpe_setting.dest_rightoffset = (g_u32VpostWidth-Tarwidth)/2;
+		setVpeDest(pvpe->rotation,  pvpe->dest_width,  pvpe->dest_height,	&vpe_setting);
+
+		DBGPRINTF("Dst dimension = %d x %d\n", vpe_setting.dest_width, vpe_setting.dest_height);
+		DBGPRINTF("Dst offset(L,R) = %d , %d\n", vpe_setting.dest_leftoffset, vpe_setting.dest_rightoffset);
+		vpe_setting.algorithm = VPE_SCALE_DDA;
+
+		if((ioctl(vpe_fd, VPE_SET_FORMAT_TRANSFORM, &vpe_setting)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_IO_GET fail\n");
+			ret = -1;
+		}
+#ifndef _USE_FBIOPAN_
+#ifdef _NON_TEARING_
+		ioctl(vpost_fd,LCD_DISABLE_INT);
+#endif
+#endif
+		if((ioctl(vpe_fd, VPE_TRIGGER, NULL)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_TRIGGER info fail\n");
+			ret = -1;
+		}
+		//ioctl(vpe_fd, VPE_WAIT_INTERRUPT, &value);
+		while (ioctl (vpe_fd, VPE_WAIT_INTERRUPT, &value)) {
+			if (errno == EINTR) {
+				continue;
+			}
+			else {
+				printf ("%s: VPE_WAIT_INTERRUPT failed: %s\n", __FUNCTION__, strerror (errno));
+				ret = -1;
+				break;
+			}
+		}
+
+		break;
+	}
+
+
+	return ret;
+
+
+#if 0
+	unsigned int volatile vworkbuf, tmpsize;
+	unsigned int value, buf=0, ret =0;
+	vpe_transform_t vpe_setting;
+	unsigned int ptr_y, ptr_u, ptr_v, step=0;
+	ptr_y = (unsigned int)pSrcBuf;
+	ptr_u = ptr_y+PAT_WIDTH*PAT_HEIGHT;		/* Planar YUV422 */
+	ptr_v = ptr_u+PAT_WIDTH*PAT_HEIGHT/2;
+
+	unsigned int g_u32VpostWidth, g_u32VpostHeight;
+	g_u32VpostWidth = 320;
+	g_u32VpostHeight = 240;
+
+//	g_u32VpostWidth = 640;
+//	g_u32VpostHeight = 480;
+
+	// Get Video Decoder IP Register size
+	if( ioctl(vpe_fd, VPE_INIT, NULL)  < 0){
+		close(vpe_fd);
+		printf("VPE_INIT fail\n");
+		ret = -1;
+	}
+	value = 0x5a;
+	if((ioctl(vpe_fd, VPE_IO_SET, &value)) < 0){
+		close(vpe_fd);
+		printf("VPE_IO_SET fail\n");
+		ret = -1;
+	}
+
+	value = 1;
+	ioctl(vpe_fd, VPE_SET_MMU_MODE, &value);
+
+	vpe_setting.src_width = PAT_WIDTH;
+	unsigned int test=0;
+
+		vpe_setting.src_addrPacY = ptr_y ;				// Planar YUV422
+		vpe_setting.src_addrU = ptr_u;
+		vpe_setting.src_addrV = ptr_v;
+
+	//	vpe_setting.src_format = VPE_SRC_PACKET_YUV422;
+	  vpe_setting.src_format = VPE_SRC_PLANAR_YUV422;
+		vpe_setting.src_width = PAT_WIDTH ;
+		vpe_setting.src_height = PAT_HEIGHT;
+
+		vpe_setting.src_leftoffset = 0;
+		vpe_setting.src_rightoffset = 0;
+
+	//	if(buf==0){/* Render to the first buffer, VPOST show the 2nd buffer */
+			vpe_setting.dest_addrPac = (unsigned int)pDstBuf;
+	//	}
+	//	else{
+			//vpe_setting.dest_addrPac = (unsigned int)pDstBuf+ var.xres*var.yres*var.bits_per_pixel/8;
+	//	}
+		DBGPRINTF("Buf %x, Start Addr = 0x%x", buf, vpe_setting.dest_addrPac);
+		vpe_setting.dest_format = VPE_DST_PACKET_RGB565;
+//		vpe_setting.dest_format = VPE_DST_PACKET_YUV422;
+		vpe_setting.dest_width = Tarwidth;
+		vpe_setting.dest_height = Tarheight;
+	//	vpe_setting.dest_width = PAT_WIDTH;
+	//	vpe_setting.dest_height = PAT_HEIGHT;
+	//	vpe_setting.dest_leftoffset = (g_u32VpostWidth-Tarwidth)/2;
+	//	vpe_setting.dest_rightoffset = (g_u32VpostWidth-Tarwidth)/2;
+		vpe_setting.dest_leftoffset = 0;
+		vpe_setting.dest_rightoffset = 0;
+		DBGPRINTF("Dst dimension = %d x %d\n", vpe_setting.dest_width, vpe_setting.dest_height);
+		DBGPRINTF("Dst offset(L,R) = %d , %d\n", vpe_setting.dest_leftoffset, vpe_setting.dest_rightoffset);
+		vpe_setting.algorithm = VPE_SCALE_DDA;
+		vpe_setting.rotation = VPE_OP_NORMAL;
+
+		if((ioctl(vpe_fd, VPE_SET_FORMAT_TRANSFORM, &vpe_setting)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_IO_GET fail\n");
+			ret = -1;
+		}
+
+		if((ioctl(vpe_fd, VPE_TRIGGER, NULL)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_TRIGGER info fail\n");
+			ret = -1;
+		}
+
+		while (ioctl (vpe_fd, VPE_WAIT_INTERRUPT, &value)) {
+			if (errno == EINTR) {
+				continue;
+			}
+			else {
+				printf ("%s: VPE_WAIT_INTERRUPT failed: %s\n", __FUNCTION__, strerror (errno));
+				ret = -1;
+				break;
+			}
+		}
+
+	return ret;
+#endif
+}
 
 int FormatConversion_up_QVGA(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarheight)
 {
@@ -741,7 +1013,101 @@ int FormatConversion_up_VGA(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarh
 	
 }	
 
+extern int s_i32FBWidth;
+extern int s_i32FBHeight;
+int FormatConversion_Normal_QVGA_rgb(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarheight,int srcwidth, int srcheight,ZOOMLEVEL zoom)
+{
+	unsigned int volatile vworkbuf, tmpsize;
+	unsigned int value, buf=0, ret =0;
+	vpe_transform_t vpe_setting;
 
+	static  int step=0;
+	setStepVal(&step,zoom);
+
+	unsigned int g_u32VpostWidth, g_u32VpostHeight;
+	g_u32VpostWidth = s_i32FBWidth;
+	g_u32VpostHeight = s_i32FBHeight;
+
+//	g_u32VpostWidth = 640;
+//	g_u32VpostHeight = 480;
+
+	// Get Video Decoder IP Register size
+	if( ioctl(vpe_fd, VPE_INIT, NULL)  < 0){
+		close(vpe_fd);
+		printf("VPE_INIT fail\n");
+		ret = -1;
+	}
+	value = 0x5a;
+	if((ioctl(vpe_fd, VPE_IO_SET, &value)) < 0){
+		close(vpe_fd);
+		printf("VPE_IO_SET fail\n");
+		ret = -1;
+	}
+
+	value = 1;
+	ioctl(vpe_fd, VPE_SET_MMU_MODE, &value);
+
+	vpe_setting.src_addrPacY = (unsigned int)pSrcBuf + srcwidth*STEP_HEIGHT*step;
+	vpe_setting.src_addrU = 0;
+	vpe_setting.src_addrV = 0;
+	vpe_setting.src_format = VPE_SRC_PACKET_YUV422;
+	vpe_setting.src_width =srcwidth- step*STEP_WIDTH;
+	vpe_setting.src_height = srcheight- step*STEP_HEIGHT;
+/*	vpe_setting.src_width = srcwidth;
+	vpe_setting.src_height = srcheight;*/
+	vpe_setting.src_leftoffset = step*STEP_WIDTH/2;
+	vpe_setting.src_rightoffset = step*STEP_WIDTH/2;
+	vpe_setting.dest_addrPac = (unsigned int)pDstBuf;
+	vpe_setting.dest_format = VPE_DST_PACKET_RGB565;
+	vpe_setting.dest_width = Tarwidth;
+	vpe_setting.dest_height = Tarheight;
+	vpe_setting.dest_leftoffset = 0;
+	vpe_setting.dest_rightoffset =0;
+	vpe_setting.algorithm = VPE_SCALE_DDA;
+	vpe_setting.rotation = VPE_OP_NORMAL;
+	if (g_u32VpostWidth >= vpe_setting.dest_width)
+    {
+		vpe_setting.dest_leftoffset = (g_u32VpostWidth-vpe_setting.dest_width)/2;
+        vpe_setting.dest_rightoffset = (g_u32VpostWidth-vpe_setting.dest_width)/2;
+
+    }
+    else
+    {
+        vpe_setting.dest_width = g_u32VpostWidth;
+        vpe_setting.dest_height = g_u32VpostHeight;
+
+        vpe_setting.dest_leftoffset = 0;
+        vpe_setting.dest_rightoffset = 0;
+    }
+
+		if((ioctl(vpe_fd, VPE_SET_FORMAT_TRANSFORM, &vpe_setting)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_IO_GET fail\n");
+			ret = -1;
+		}
+
+		if((ioctl(vpe_fd, VPE_TRIGGER, NULL)) < 0){
+			close(vpe_fd);
+			DBGPRINTF("VPE_TRIGGER info fail\n");
+			ret = -1;
+		}
+
+		while (ioctl (vpe_fd, VPE_WAIT_INTERRUPT, &value)) {
+			if (errno == EINTR) {
+				continue;
+			}
+			else {
+				printf ("%s: VPE_WAIT_INTERRUPT failed: %s\n", __FUNCTION__, strerror (errno));
+				ret = -1;
+				break;
+			}
+		}
+
+	return ret;
+
+
+
+}
 
 int FormatConversion_up_QVGA_rgb(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarheight)
 {
@@ -872,6 +1238,7 @@ int FormatConversion_right_QVGA(char* pSrcBuf, char* pDstBuf, int Tarwidth, int 
 	ioctl(vpe_fd, VPE_SET_MMU_MODE, &value);
 
 	vpe_setting.src_width = PAT_WIDTH;
+	vpe_setting.src_height = PAT_HEIGHT;
 	unsigned int test=0;
 	
 	step=0;

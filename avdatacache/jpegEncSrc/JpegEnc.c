@@ -35,7 +35,7 @@
 
 uint8_t *s_pu8JpegEncBuf = MAP_FAILED;
 static int32_t s_i32JpegFd = -1;
-static uint32_t s_u32JpegBufSize;
+uint32_t s_u32JpegBufSize;
 static jpeg_param_t s_sJpegParam;
 static jpeg_info_t *s_pJpegInfo = NULL;	
 
@@ -958,7 +958,8 @@ out:
 
 }
 
-int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char **dstbuf,int* pdstbuflen)
+int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr, char **dstbuf, int* pdstbuflen,
+		int width_af_vpe, int height_af_vpe)
 {
 	unsigned long BufferSize, bufferCount, readSize;
 	int enc_reserved_size;
@@ -980,10 +981,10 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char **dstbuf,int* pd
 	char *filename = "jpegEnc.dat";
 
 	s_sJpegParam.encode = 1; /* Encode */
-	s_sJpegParam.src_bufsize = 320 * 240 * 2; /* Src buffer (Raw Data) */
+	s_sJpegParam.src_bufsize = width_af_vpe * height_af_vpe * 2; /* Src buffer (Raw Data) */
 	s_sJpegParam.dst_bufsize = 100 * 1024; /* Dst buffer (Bitstream) */
-	s_sJpegParam.encode_width = 320; /* JPEG width */
-	s_sJpegParam.encode_height = 240; /* JPGE Height */
+	s_sJpegParam.encode_width = width_af_vpe; /* JPEG width */
+	s_sJpegParam.encode_height = height_af_vpe; /* JPGE Height */
 	s_sJpegParam.encode_source_format = DRVJPEG_ENC_SRC_PACKET; /* DRVJPEG_ENC_SRC_PACKET/DRVJPEG_ENC_SRC_PLANAR */
 	s_sJpegParam.encode_image_format = DRVJPEG_ENC_PRIMARY_YUV422; /* DRVJPEG_ENC_PRIMARY_YUV420/DRVJPEG_ENC_PRIMARY_YUV422 */
 
@@ -1069,7 +1070,7 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr,char **dstbuf,int* pd
 		*dstbuf = s_pu8JpegEncBuf + s_sJpegParam.src_bufsize;
 		//memcpy(dstbuf, s_pu8JpegEncBuf + s_sJpegParam.src_bufsize, s_pJpegInfo->image_size[0]);
 	}else{
-		printf("buffer is small\n");
+		printf("buffer is small,*pdstbuflen=%d  s_pJpegInfo->image_size[0]=%d\n",*pdstbuflen,s_pJpegInfo->image_size[0]);
 		ret =-1;
 		goto out;
 	}

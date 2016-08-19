@@ -37,12 +37,14 @@
 #include "Misc.h"
 #include "V4L.h"
 #include "vin_demo.h"
+#include "w55fa92_vpe.h"
 #define DEFAULT_SAVE_FOLDER "/mnt/sdcard/dsc"
 
 /*static int savefd;*/
 extern uint8_t *s_pu8JpegEncBuf;
-static int s_i32FBWidth;
-static int s_i32FBHeight;
+extern uint32_t s_u32JpegBufSize;
+int s_i32FBWidth;
+int s_i32FBHeight;
 static S_JPEG_ENC_FEAT s_sJpegEncFeat;
 
 static struct v4l2_cropcap 	s_sVideoCropCap;
@@ -69,6 +71,7 @@ extern int FormatConversion_right_QVGA(char* pSrcBuf, char* pDstBuf, int Tarwidt
 extern int FormatConversion_down_QVGA(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarheight);
 extern int FormatConversion_left_QVGA(char* pSrcBuf, char* pDstBuf, int Tarwidth, int Tarheight);
 
+extern int scalePro(tb_vpe_transform_t* pvpe);
 uint32_t
 GetTime(void)
 {
@@ -219,7 +222,7 @@ OSDInit(
 	}
 	fclose(fpOSDImg); 
 }
-/*unsigned char *backupVideoBuffer;*/
+static unsigned char *backupVideoBuffer;
 static int 
 InitFBDevice(
 	uint8_t **ppu8FBBuf,
@@ -274,7 +277,7 @@ InitFBDevice(
 	//usleep(50000);		/* Delay 50ms to not update the off-line buffer to on line buffer */
 
 
-	//ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_YCBYCR);
+	//ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_RGB565);
 	//2012-0808 wmemset((wchar_t *)pu8FBBuf, 0x80108010, (s_i32FBWidth*s_i32FBHeight*2)/4);		
 
 	//ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
@@ -685,10 +688,10 @@ static void ShowUsage()
 	printf("-u :jpeg upscale function. Encode image width*2 and height*2 \n");
 	printf("-h : Help\n");
 }
-/*int32_t i32FBFd;
-int32_t i32KpdFd;
+int32_t i32FBFd;
+//int32_t i32KpdFd;
 uint8_t *pu8FBBufAddr;
-uint32_t u32FBBufSize;*/
+uint32_t u32FBBufSize;
 /*char *pchSaveFolder = NULL;*/
 static void myExitHandler (int sig)
 {
@@ -697,19 +700,21 @@ static void myExitHandler (int sig)
 /*	close(savefd);*/
 /*	sync();*/
 	/////////save avi
-//	ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
+	ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
 	StopV4LCapture();	
-/*	printf("Clear Frame Buffer Addr = 0x%x\n",  (uint32_t)pu8FBBufAddr);
-	wmemset((wchar_t *)pu8FBBufAddr, 0x00000000, (s_i32FBWidth*s_i32FBHeight*2)/4);*/
+	printf("Clear Frame Buffer Addr = 0x%x\n",  (uint32_t)pu8FBBufAddr);
+	wmemset((wchar_t *)pu8FBBufAddr, 0x00000000, (s_i32FBWidth*s_i32FBHeight*2)/4);
 	FinializeJpegDevice();
 	FinializeV4LDevice();
-/*	ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_RGB565);
+	ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_RGB565);
 	munmap(pu8FBBufAddr, u32FBBufSize);
 	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
 	close(i32FBFd);
+	DEBUG_PRINT();
 	////////////////
-	memcpy((void*)pu8FBBufAddr, (char*)backupVideoBuffer, u32FBBufSize);*/
-/*	free(backupVideoBuffer);*/
+	//memcpy((void*)pu8FBBufAddr, (char*)backupVideoBuffer, u32FBBufSize);
+	//free(backupVideoBuffer);
+	DEBUG_PRINT();
 	////////////////////////////
 //	close(i32KpdFd);
 
@@ -759,7 +764,7 @@ void loadSrcPattern(char *p8SrcBuf)
 	int ret;
 
 	printf("The pattern \"src.pb\" and application \"vpe_demo\" have to store in the same directory.\n");
-	fpr = fopen("black.pb", "rb");
+	fpr = fopen("src.pb", "rb");
 	if(!fpr){
 		printf("Open read file  error \n"); 
 		exit(-1);
@@ -772,7 +777,8 @@ void loadSrcPattern(char *p8SrcBuf)
 static uint8_t *pu8PicPtr;
 static uint64_t u64TS;
 static uint32_t u32PicPhyAdr;
-static char *p8SrcBuf_vpe;
+static char *p8SrcBuf_black;
+static uint32_t u32EncodeImgWidth=0, u32EncodeImgHeight=0;
 int initJpegPro(E_IMAGE_RESOL resol)
 {
 	int32_t i32Opt;
@@ -788,7 +794,7 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	
 	int32_t i32KeyCode;
 
-	uint32_t u32EncodeImgWidth=0, u32EncodeImgHeight=0;
+
 	uint32_t u32PreviewImgWidth=0, u32PreviewImgHeight=0;
 
 
@@ -869,34 +875,34 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	if(i32KpdFd < 0){
 		i32Ret = -1;
 		goto exit_prog;
-	}
+	}*/
 	i32FBFd = InitFBDevice(&pu8FBBufAddr, &u32FBBufSize);
 	printf("FB = %d\n",  i32FBFd);
 	if(i32FBFd < 0){
-		close(i32KpdFd);
+/*		close(i32KpdFd);*/
 		i32Ret = -1;
 		printf("Init fb device fail\n");
 		goto exit_prog;
 	}
 	////////////////////////////
-*/
-/*	backupVideoBuffer = malloc(u32FBBufSize);
+
+	backupVideoBuffer = malloc(u32FBBufSize);
 
 	if(backupVideoBuffer < 0)
 	{
 		printf("Malloc fail\n");
 		return -1;
-	}*/
-//	memcpy((void*)backupVideoBuffer, (char*)pu8FBBufAddr, u32FBBufSize);
+	}
+  memcpy((void*)backupVideoBuffer, (char*)pu8FBBufAddr, u32FBBufSize);
 	////////////////////////////
 
 	if(InitV4LDevice(eEncodeImgResol) != ERR_V4L_SUCCESS){
-/*		ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
+		ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
 		ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_RGB565); //2012-0808 
 		ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
 		munmap(pu8FBBufAddr, u32FBBufSize);
 		close(i32FBFd);
-		close(i32KpdFd);*/
+		//close(i32KpdFd);
 		i32Ret = -1;
 		printf("Init V4L device fail\n");
 
@@ -926,14 +932,14 @@ int initJpegPro(E_IMAGE_RESOL resol)
 //
 	if(InitJpegDevice(eEncodeImgResol) < 0){		
 		FinializeV4LDevice();
-/*		munmap(pu8FBBufAddr, u32FBBufSize);
+		munmap(pu8FBBufAddr, u32FBBufSize);
 		close(i32FBFd);
-		close(i32KpdFd);*/
+/*		close(i32KpdFd);*/
 		i32Ret = -1;
 		printf("Init JPEG device fail\n");
 		goto exit_prog;
 	}
-//	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
+	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
 
 	
 		
@@ -943,6 +949,7 @@ int initJpegPro(E_IMAGE_RESOL resol)
 #else
 	//Planar YUV422
 	SetV4LEncode(0, u32EncodeImgWidth, u32EncodeImgHeight, VIDEO_PALETTE_YUV422P);
+	//SetV4LEncode(0, 320, 240, VIDEO_PALETTE_YUV422P);
 #endif
 
 	SetV4LViewWindow(s_i32FBWidth, s_i32FBHeight, u32PreviewImgWidth, u32PreviewImgHeight);
@@ -950,7 +957,7 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	StartV4LCapture();
 	printf("Start capturing\n");	
 
-//	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
+	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
 	
 
 	MotionDetV4LSetThreshold(20);
@@ -975,40 +982,23 @@ int initJpegPro(E_IMAGE_RESOL resol)
 
 	printf("Allocate Buf addr = 0x%x\n", (unsigned int)p8SrcBuf);
 	memset (p8SrcBuf, 0x00, SRCBUFSIZE);*/
-	unsigned int YUVaddr_offset = 0;
-	unsigned int rot_num = 0;
-	unsigned int rot_right_left = 0;
 
-	
-	p8SrcBuf_vpe = malloc(SRCBUFSIZE*3);	
-	if(p8SrcBuf_vpe == NULL){
-		printf("Allocate src buffer faile \n");
-		return (-1);
-	}
-	
-
-	printf("Allocate p8SrcBuf_vpe addr = 0x%x\n", (unsigned int)p8SrcBuf_vpe);
-//	memset (p8SrcBuf_vpe, 0x00, SRCBUFSIZE*2);
-	memset (p8SrcBuf_vpe, 0x00, SRCBUFSIZE);	
-//	YUVaddr_offset = u32FBBufSize*2;
-	
-
-	/* Allocate buffer for 3M pixels srouce pattern */ 	
+	/* Allocate buffer for 3M pixels srouce pattern */
 	if ( InitVPE() ){				
 		return (-1);
 	}	
 	printf("InitVPE ok \n");
 	/////////////////////////////
-/*	char *p8SrcBuf_black;
-	p8SrcBuf_black = malloc(SRCBUFSIZE);	
+
+/*	p8SrcBuf_black = malloc(SRCBUFSIZE);
 	if(p8SrcBuf_black == NULL){
 		printf("Allocate src buffer faile \n");
 		exit(-1);
 	}
 
 	printf("Allocate Buf addr = 0x%x\n", (unsigned int)p8SrcBuf_black);
-	memset (p8SrcBuf_black, 0x00, SRCBUFSIZE);*/
-	//loadSrcPattern(p8SrcBuf_black);
+	memset (p8SrcBuf_black, 0x00, SRCBUFSIZE);
+	loadSrcPattern(p8SrcBuf_black);*/
 	return 0;
 exit_prog:
 	return -1;
@@ -1023,128 +1013,134 @@ int unInitJpecPro()
 	return 0;
 }
 
-int getOneJpeg(int rot_num,uint8_t** buff,uint32_t* buflen)
+static int setBlackYuv422(uint8_t* start,uint32_t len)
+{
+	int i=0;
+	for(i=0;i<len;i=i+2){
+		start[i]=0x00;//y
+		start[i+1]=0x80;//uv
+	}
+	return 0;
+}
+
+static int getOneJpegNormal(ROTATEDIREC rot_num,uint8_t** buff,uint32_t* buflen,ZOOMLEVEL zoom,int needswitch)
 {
 	// refresh image
+	if (needswitch) {
+		StopV4LCapture();
+		SetV4LEncode(0, 320, 240, VIDEO_PALETTE_YUV422P);
+		StartV4LCapture();
+		printf("Start capturing\n");
+	}
+
+
+    struct timeval start, end;
+
+	int width_af_vpe=320,height_af_vpe=240,dispW=320,dispH=240;
+	tb_vpe_transform_t tbpara={0};
+	tbpara.rotation=rot_num;
+	tbpara.dest_width=320;
+	tbpara.dest_height=240;
+	tbpara.zoomlev=NOZOOM;
+/*	tbpara.src_width=u32EncodeImgWidth;
+	tbpara.src_height=u32EncodeImgHeight;*/
+	tbpara.src_width=320;
+	tbpara.src_height=240;
+	static char firstSwitchTo180=1;
 
 	if (ReadV4LPicture(&pu8PicPtr, &u64TS, &u32PicPhyAdr) == ERR_V4L_SUCCESS) {
 		TriggerV4LNextFrame();
-/*			memset(p8SrcBuf_vpe + u32FBBufSize, 0x00, u32FBBufSize);
-		memcpy((void*) p8SrcBuf_vpe, (char*) p8SrcBuf_black, u32FBBufSize);*/
+		//printf("@@@@@@@@@@@@%d  %d\n",u32EncodeImgWidth,u32EncodeImgHeight);
 		getfps();
+		/**************for buffer***********************************/
 		switch (rot_num) {
-		case 0:
-			FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
-			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
-			break;
-		case 1:
-			FormatConversion_right_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 180, 240); //ok
-			//FormatConversion_right_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 180, 240); //
-			break;
-		case 2:
-			FormatConversion_down_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
-			//FormatConversion_down_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
-			break;
-		case 3:
-			FormatConversion_left_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 180, 240); //ok
-			//FormatConversion_left_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 180, 240); //ok
+		case RIGHTDIRECTION:
+		case LEFTDIRECTION:
+			width_af_vpe = 240;
+			height_af_vpe = 320;
+			dispW=240*width_af_vpe/height_af_vpe;
+			dispH=240;
 			break;
 		default:
-			FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
-			//FormatConversion_up_QVGA_rgb(pu8PicPtr, p8SrcBuf_vpe + u32FBBufSize, 320, 240); //ok
+			//FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
 			break;
 		}
+		tbpara.dest_addr=s_pu8JpegEncBuf;
+		tbpara.dest_format=VPE_DST_PACKET_YUV422;
+		tbpara.src_addr=pu8PicPtr;
+		tbpara.src_format=VPE_SRC_PLANAR_YUV422;
+	    scalePro(&tbpara);
+		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen,width_af_vpe,height_af_vpe);
+	    FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, dispW, dispH,width_af_vpe,height_af_vpe,zoom);
 
-		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen);
-
-		//jpegCodec_reserved_vpe_QVGA_file(p8SrcBuf_vpe, pchSaveFolder);
-		//memcpy((void*) pu8FBBufAddr, (char*) p8SrcBuf_vpe + u32FBBufSize, u32FBBufSize);
 	} else {
 
 		ERR_PRINT("Read V4L Error\n");
 		return -1;
 	}
-
-/*		u32CurrTime = GetTime();
-	if (u32CurrTime > u32MDJudgeTime) {
-		//	printf("Detect motion count %d, current time= %d\n", MotionDetV4LJudge(), u32CurrTime);
-		u32MDJudgeTime = u32CurrTime + 2000;
-		//	printf("Detect motion time= %d\n",u32MDJudgeTime);
-	}*/
-
-	//CaptureImage(eEncodeImgResol, pchSaveFolder, i32FBFd, pu8FBBufAddr);
-/*
-//#ifdef __KPD__	
-	if (GetKey(i32KpdFd, &i32KeyCode) < 0)
-		continue;
-
-	if (i32KeyCode == HOME_KEY)
-		break;
-//#endif
-	switch (i32KeyCode) {
-	case CAMERA: {
-		//capture image and save to file
-		CaptureImage(eEncodeImgResol, pchSaveFolder, i32FBFd, pu8FBBufAddr);
-	}
-		break;
-	case VOL_PLUS_KEY:
-		ChangeV4LUserControl_Brigness(1);
-		break;
-	case VOL_MINUS_KEY:
-		ChangeV4LUserControl_Brigness(-1);
-		break;
-	case UP_KEY:  Zoom in
-		//Zooming(&s_sVideoCropCap, &s_sVideoCrop, 1);
-		//	dumpV4LBuffer();
-	{
-		jpegCodec_reserved_vpe_QVGA_file(p8SrcBuf_vpe, pchSaveFolder); //
-
-	}
-		break;
-	case DOWN_KEY:  Zoom out
-		Zooming(&s_sVideoCropCap, &s_sVideoCrop, -1);
-		break;
-	case LEFT_KEY:
-		if (rot_num == 0) {
-
-			rot_num = 3;
-		} else {
-			rot_num--;
-		}
-
-		break;
-	case RIGHT_KEY: {
-		if (rot_num == 3) {
-			rot_num = 0;
-		} else {
-			rot_num++;
-		}
-
-		//#if 1
-		//printf("Pressing right key\n");
-		//E_IMAGE_RESOL eEncodeImgResol = eIMAGE_QVGA;
-
-		 CaptureImage_Planar(eIMAGE_VGA,
-		 pchSaveFolder,
-		 i32FBFd,
-		 pu8FBBufAddr);
-
-		CaptureImage_Planar(eIMAGE_QVGA,
-		 pchSaveFolder,
-		 i32FBFd,
-		 pu8FBBufAddr);
-		 #else
-		 CaptureImage_Packet(eIMAGE_QVGA,
-		 pchSaveFolder,
-		 i32FBFd,
-		 pu8FBBufAddr);
-		 #endif
-
-	}
-		break;
-	}
-*/
 	return 0;
+}
+static int getOneJpegForTake(ROTATEDIREC rot_num,uint8_t** buff,uint32_t* buflen,ZOOMLEVEL zoom,int needswitch)
+{
+	// refresh image
+	if (needswitch) {
+		StopV4LCapture();
+		SetV4LEncode(0, u32EncodeImgWidth, u32EncodeImgHeight, VIDEO_PALETTE_YUV422P);
+		StartV4LCapture();
+		printf("Start capturing\n");
+	}
+    struct timeval start, end;
+	int width_af_vpe=u32EncodeImgWidth,height_af_vpe=u32EncodeImgHeight,dispW=320,dispH=240;
+	tb_vpe_transform_t tbpara={0};
+	tbpara.rotation=rot_num;
+	tbpara.dest_width=u32EncodeImgWidth;
+	tbpara.dest_height=u32EncodeImgHeight;
+	tbpara.zoomlev=NOZOOM;
+	tbpara.src_width=u32EncodeImgWidth;
+	tbpara.src_height=u32EncodeImgHeight;
+	static char firstSwitchTo180=1;
+
+	if (ReadV4LPicture(&pu8PicPtr, &u64TS, &u32PicPhyAdr) == ERR_V4L_SUCCESS) {
+		TriggerV4LNextFrame();
+		//printf("@@@@@@@@@@@@%d  %d\n",u32EncodeImgWidth,u32EncodeImgHeight);
+		getfps();
+		/**************for buffer***********************************/
+		switch (rot_num) {
+		case RIGHTDIRECTION:
+		case LEFTDIRECTION:
+			width_af_vpe = u32EncodeImgHeight;
+			height_af_vpe = u32EncodeImgWidth;
+			dispW=240*width_af_vpe/height_af_vpe;
+			dispH=240;
+			break;
+		default:
+			//FormatConversion_up_QVGA(pu8PicPtr, s_pu8JpegEncBuf, 320, 240); //ok
+			break;
+		}
+		tbpara.dest_addr=s_pu8JpegEncBuf;
+		tbpara.dest_format=VPE_DST_PACKET_YUV422;
+		tbpara.src_addr=pu8PicPtr;
+		tbpara.src_format=VPE_SRC_PLANAR_YUV422;
+	    scalePro(&tbpara);
+		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen,width_af_vpe,height_af_vpe);
+	    FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, dispW, dispH,width_af_vpe,height_af_vpe,zoom);
+
+	} else {
+
+		ERR_PRINT("Read V4L Error\n");
+		return -1;
+	}
+	return 0;
+}
+int getOneJpeg(ROTATEDIREC rot_num, uint8_t** buff, uint32_t* buflen, ZOOMLEVEL zoom, int takephoto,int SwitchRes)
+{
+	int ret = 0;
+	if (takephoto) {
+		getOneJpegForTake(rot_num, buff, buflen, zoom,SwitchRes);
+	} else {
+		getOneJpegNormal(rot_num, buff, buflen, zoom,SwitchRes);
+	}
+	return ret;
 }
 int saveJpegToFile(char* pchSaveFolder,unsigned char* buf,int buflen)
 {
