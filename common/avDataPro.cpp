@@ -34,3 +34,34 @@ int avDataPro::displayOneAudioFrame(uint8_t* start, uint32_t len)
 {
 	return 0;
 }
+int avDataPro::setDisplayZoom(int level)
+{
+	return 0;
+}
+int avDataPro::enableVideoForPhoto()
+{
+	return 0;
+}
+int avDataPro::disableVideoForPhoto()
+{
+	return 0;
+}
+int avDataPro::enableVideoForRec()
+{
+	return 0;
+}
+int avDataPro::disableVideoForRec()
+{
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+

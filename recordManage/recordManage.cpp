@@ -339,6 +339,16 @@ int recordManage::saveOneAvToFile()
 	int ret=0;
 	ret = getFileName();
 	CHECKRET(ret);
+/*	FILE* pf=NULL;
+	pf=fopen("/mnt/tmp/ceshi.jpg","w+");
+	if(pf){
+		ret=fwrite(m_Avdata.buffV,1,m_Avdata.lenV,pf);
+		if(ret==m_Avdata.lenV){
+			fclose(pf);
+			sync();
+			exit(0);
+		}
+	}*/
 	ret=m_pAviOp->createOneAvFile(&m_Avdata,m_FileName);
 	CHECKRET(ret);
 	return 0;

@@ -42,7 +42,8 @@ typedef enum
 } RECORD_STATUS_E;
 
 
-#define ROOT_SAVE_PATH "/mnt/mmcblk0p5"
+//#define ROOT_SAVE_PATH "/mnt/mmcblk0p5"
+#define ROOT_SAVE_PATH "/mnt/tmp"
 #define SD_DEVNAME "/dev/mmcblk0p5"
 #define CUR_SAVE_PATH ROOT_SAVE_PATH"/DCIM"
 #define MAX_INDEX       999

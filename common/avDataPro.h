@@ -18,6 +18,11 @@ public:
 	virtual int getOneAudioFrameFromDri(uint8_t* start, uint32_t *len);//change len to the real lenth
 	virtual int displayOneVideoFrame(uint8_t* start, uint32_t len);
 	virtual int displayOneAudioFrame(uint8_t* start, uint32_t len);
+	virtual int setDisplayZoom(int level);
+	virtual int enableVideoForPhoto();
+	virtual int disableVideoForPhoto();
+	virtual int enableVideoForRec();
+	virtual int disableVideoForRec();
 };
 
 #endif /* TBAPP_COMMON_AVDATAPRO_H_ */

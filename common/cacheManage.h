@@ -26,7 +26,7 @@
 #define INDEXNUM 90
 #define SHAREMEMKEY 666888
 #define SEMSMEMKEY 888666
-#define VIDEOBUFFMAX (26*1024)
+#define VIDEOBUFFMAX (80*1024)
 #define AUDIOBUFFMAX (4*1024)
 typedef struct{
 	uint32_t offV;//correspond to shmptr
