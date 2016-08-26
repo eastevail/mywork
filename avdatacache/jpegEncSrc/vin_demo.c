@@ -43,6 +43,9 @@
 /*static int savefd;*/
 extern uint8_t *s_pu8JpegEncBuf;
 extern uint32_t s_u32JpegBufSize;
+extern jpeg_param_t s_sJpegParam;
+extern int32_t s_i32JpegFd;
+extern jpeg_info_t *s_pJpegInfo;
 int s_i32FBWidth;
 int s_i32FBHeight;
 static S_JPEG_ENC_FEAT s_sJpegEncFeat;
@@ -693,6 +696,13 @@ int32_t i32FBFd;
 uint8_t *pu8FBBufAddr;
 uint32_t u32FBBufSize;
 /*char *pchSaveFolder = NULL;*/
+
+int __clearFb()
+{
+	wmemset((wchar_t *)pu8FBBufAddr, 0x80008000, (s_i32FBWidth*s_i32FBHeight*2)/4);
+	return 0;
+}
+
 static void myExitHandler (int sig)
 {
 	
@@ -886,16 +896,15 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	}
 	////////////////////////////
 
-	backupVideoBuffer = malloc(u32FBBufSize);
+/*	backupVideoBuffer = malloc(u32FBBufSize);
 
 	if(backupVideoBuffer < 0)
 	{
 		printf("Malloc fail\n");
 		return -1;
 	}
-  memcpy((void*)backupVideoBuffer, (char*)pu8FBBufAddr, u32FBBufSize);
+  memcpy((void*)backupVideoBuffer, (char*)pu8FBBufAddr, u32FBBufSize);*/
 	////////////////////////////
-
 	if(InitV4LDevice(eEncodeImgResol) != ERR_V4L_SUCCESS){
 		ioctl(i32FBFd, IOCTL_LCD_DISABLE_INT, 0);
 		ioctl(i32FBFd, VIDEO_FORMAT_CHANGE, DISPLAY_MODE_RGB565); //2012-0808 
@@ -940,7 +949,6 @@ int initJpegPro(E_IMAGE_RESOL resol)
 		goto exit_prog;
 	}
 	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
-
 	
 		
 #ifdef _PLANAR_YUV420_
@@ -951,12 +959,10 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	SetV4LEncode(0, u32EncodeImgWidth, u32EncodeImgHeight, VIDEO_PALETTE_YUV422P);
 	//SetV4LEncode(0, 320, 240, VIDEO_PALETTE_YUV422P);
 #endif
-
 	SetV4LViewWindow(s_i32FBWidth, s_i32FBHeight, u32PreviewImgWidth, u32PreviewImgHeight);
 	printf("Ready to start capture\n");	
 	StartV4LCapture();
 	printf("Start capturing\n");	
-
 	ioctl(i32FBFd, IOCTL_LCD_ENABLE_INT, 0);
 	
 
@@ -971,7 +977,7 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	u32MDJudgeTime = GetTime() + 2000;
 	////////////////////////////
 
-	
+
 /*	char *p8SrcBuf=NULL;
 	p8SrcBuf = malloc(SRCBUFSIZE);	
 	if(p8SrcBuf == NULL){
@@ -987,6 +993,7 @@ int initJpegPro(E_IMAGE_RESOL resol)
 	if ( InitVPE() ){				
 		return (-1);
 	}	
+
 	printf("InitVPE ok \n");
 	/////////////////////////////
 
@@ -1023,6 +1030,219 @@ static int setBlackYuv422(uint8_t* start,uint32_t len)
 	return 0;
 }
 
+static int cur_width_af_vpe,cur_height_af_vpe,cur_dispW,cur_dispH;
+static ZOOMLEVEL cur_zoom;
+static int setCurVideoPara(int dispW, int dispH,int width_af_vpe,int height_af_vpe,ZOOMLEVEL zoom)
+{
+	cur_width_af_vpe=width_af_vpe;
+	cur_height_af_vpe=height_af_vpe;
+	cur_dispW=dispW;
+	cur_dispH=dispH;
+	cur_zoom=zoom;
+	return 0;
+}
+
+int displayVideoFrame()
+{
+	FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, cur_dispW, cur_dispH,
+			cur_width_af_vpe, cur_height_af_vpe, cur_zoom);
+	return 0;
+}
+
+int dispalyOneJpeg(uint8_t* buff, uint32_t buflen)
+{
+	if(0==buflen)
+		return 0;
+	int mode=TEST_DECODE_DOWNSCALE;
+	unsigned long BufferSize, bufferCount,readSize;
+	int enc_reserved_size;
+	int ret = 0;
+	int i,len, jpeginfo_size;
+	int width,height, parser;
+	FILE *fp;
+
+	memset((void*)&s_sJpegParam, 0, sizeof(jpeg_param_t));
+	if (!s_pJpegInfo) {
+		jpeginfo_size = sizeof(jpeg_info_t) + sizeof(__u32 );
+		s_pJpegInfo = malloc(jpeginfo_size);
+	}
+	if(mode == TEST_NORMAL_DECODE || mode == TEST_DECODE_DOWNSCALE || mode == TEST_DECODE_OUTPUTWAIT || mode == TEST_DECODE_DOWNSCALE_FB) 	/* Decode operation Test */
+	{
+		char *filename = "/mnt/tmp/test.jpg";
+		int DecOPWbuffersize;
+
+		s_sJpegParam.encode = 0;			/* Decode Operation */
+		s_sJpegParam.src_bufsize = 100*1024;	/* Src buffer size (Bitstream buffer size for JPEG engine) */
+		s_sJpegParam.dst_bufsize = 640*480*2;	/* Dst buffer size (Decoded Raw data buffer size for JPEG engine) */
+		s_sJpegParam.decInWait_buffer_size = 0;	/* Decode input Wait buffer size (Decode input wait function disable when 								   decInWait_buffer_size is 0) */
+		s_sJpegParam.decopw_en = 0;
+		s_sJpegParam.windec_en = 0;
+
+		if(mode == TEST_DECODE_DOWNSCALE || mode == TEST_DECODE_DOWNSCALE_FB)	/* Decode Downscale */
+		{
+			s_sJpegParam.scale = 1;		/* Enable scale function */
+			s_sJpegParam.scaled_width = 320;	/* width after scaling */
+			s_sJpegParam.scaled_height = 240;	/* height after scaling */
+			s_sJpegParam.dec_stride = 320;	/* Enable stride function */
+		}
+
+		/* Total buffer size for JPEG engine */
+
+		BufferSize = (s_sJpegParam.src_bufsize + s_sJpegParam.dst_bufsize);
+
+		if(BufferSize > s_u32JpegBufSize)
+		{
+			printf("JPEG Engine Buffer isn't enough\n");
+			ret =-1;
+			goto out;
+		}
+
+		/* Clear buffer */
+		if(mode == TEST_DECODE_DOWNSCALE || mode == TEST_DECODE_DOWNSCALE_FB)
+		{
+			memset(s_pu8JpegEncBuf, 0x77, BufferSize);
+			//memset(pVideoBuffer, 0x77, BufferSize);
+		}
+		/* Open JPEG file */
+
+/*			fp = fopen(filename, "r+");
+
+		if(fp == NULL)
+    		{
+    			printf("open %s error!\n", fp);
+    			return 0;
+  		}*/
+
+
+
+
+		memcpy(s_pu8JpegEncBuf,buff,buflen);
+		bufferCount = buflen;
+		if( bufferCount > s_sJpegParam.src_bufsize)
+		{
+			printf("Bitstream size is larger than src buffer, %d!!\n",bufferCount);
+			return -1;
+		}
+		//while(!feof(fp))
+		{/*
+			fd_set writefds;
+			struct timeval tv;
+			int result;
+			tv.tv_sec       = 0;
+			tv.tv_usec      = 0;
+			FD_ZERO( &writefds );
+			FD_SET( fd , &writefds );
+			tv.tv_sec       = 0;
+			tv.tv_usec      = 0;
+
+			select( fd + 1 , NULL , &writefds , NULL, &tv );
+			if( FD_ISSET( fd, &writefds ))
+			{
+				//pJpegBuffer = buff;
+				memcpy(pJpegBuffer,buff,buflen);
+				bufferCount = buflen;
+
+				readSize = fread(pSRCbuffer, 1, 4096 , fp);
+
+				pSRCbuffer += readSize;
+				bufferCount += readSize;
+			}
+			if(!parser)
+			{
+				result = ParsingJPEG(pJpegBuffer, bufferCount, &width, &height);
+				if(!result)
+				{
+					printf("\t->Width %d, Height %d\n", width,height);
+					parser = 1;
+				}
+				else
+					printf("\t->Can't get image siz in %5d byte bistream\n", bufferCount);
+			}
+
+			if( bufferCount > jpeg_param.src_bufsize)
+			{
+				printf("Bitstream size is larger than src buffer, %d!!\n",bufferCount);
+				return -1;
+			}
+		*/}
+		//printf("Bitstream is 0x%X Bytes\n",bufferCount);
+
+		if(bufferCount % 4)
+			bufferCount = (bufferCount & ~0x3) + 4;
+
+		//printf("Set Src Buffer is 0x%X Bytes\n",bufferCount);
+
+		s_sJpegParam.src_bufsize = bufferCount;	/* Src buffer size (Bitstream buffer size for JPEG engine) */
+		s_sJpegParam.dst_bufsize = BufferSize - bufferCount;	/* Dst buffer size (Decoded Raw data buffer size for JPEG engine) */
+
+		s_sJpegParam.buffersize = 0; /* only for continuous shot */
+		s_sJpegParam.buffercount = 1;
+
+		/* Set decode output format: RGB555/RGB565/RGB888/YUV422/PLANAR_YUV */
+		s_sJpegParam.decode_output_format = DRVJPEG_DEC_PRIMARY_PACKET_RGB565;
+
+		/* Set operation property to JPEG engine */
+		if((ioctl(s_i32JpegFd, JPEG_S_PARAM, &s_sJpegParam)) < 0)
+		{
+			fprintf(stderr,"set jpeg param failed:%d\n",errno);
+			ret = -1;
+			goto out;
+		}
+
+
+		/* Trigger JPEG engine */
+		if((ioctl(s_i32JpegFd, JPEG_TRIGGER, NULL)) < 0)
+		{
+			fprintf(stderr,"trigger jpeg failed:%d\n",errno);
+			ret = -1;
+			goto out;
+		}
+
+		/* Get JPEG decode information */
+		len = read(s_i32JpegFd, s_pJpegInfo, jpeginfo_size);
+
+		if(len<0) {
+			fprintf(stderr, "read data error errno=%d\n", errno);
+			ret = -1;
+			goto out;
+		}
+		//printf("JPEG: Width %d, Height %d\n",s_pJpegInfo->width, s_pJpegInfo->height);
+
+		if(s_pJpegInfo->state == JPEG_DECODED_IMAGE)
+		{
+			//printf("Decode Complete\n");
+			if (mode == TEST_DECODE_DOWNSCALE) {
+				//printf("Stride %d\n", s_pJpegInfo->dec_stride);
+				//printf("Output size is %d x %d\n", 320, s_pJpegInfo->height);
+				memcpy((void*) pu8FBBufAddr, (char*) (s_pu8JpegEncBuf + s_sJpegParam.src_bufsize),
+						s_pJpegInfo->image_size[0]);
+				ret = 0;
+				/*				ret = Write2File("./DecodeDownscale.dat", pJpegBuffer + jpeg_param.src_bufsize,
+				 s_pJpegInfo->image_size[0]);*/
+			}
+
+			if (ret < 0) {
+				printf("write to file, errno=%d\n", errno);
+			}
+		}
+		else if (s_pJpegInfo->state == JPEG_DECODE_ERROR) {
+			printf("Decode Error\n");
+			ret = -3;
+		} else if (s_pJpegInfo->state == JPEG_MEM_SHORTAGE) {
+			printf("Memory Shortage\n");
+			ret = -3;
+		} else if (s_pJpegInfo->state == JPEG_DECODE_PARAM_ERROR) {
+			printf("Decode Parameter Error\n");
+			ret = -3;
+		}
+
+	}
+
+out:
+
+	return ret;
+
+}
 static int getOneJpegNormal(ROTATEDIREC rot_num,uint8_t** buff,uint32_t* buflen,ZOOMLEVEL zoom,int needswitch)
 {
 	// refresh image
@@ -1071,7 +1291,7 @@ static int getOneJpegNormal(ROTATEDIREC rot_num,uint8_t** buff,uint32_t* buflen,
 		tbpara.src_format=VPE_SRC_PLANAR_YUV422;
 	    scalePro(&tbpara);
 		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen,width_af_vpe,height_af_vpe);
-	    FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, dispW, dispH,width_af_vpe,height_af_vpe,zoom);
+		setCurVideoPara(dispW, dispH,width_af_vpe,height_af_vpe,zoom);
 
 	} else {
 
@@ -1123,8 +1343,8 @@ static int getOneJpegForTake(ROTATEDIREC rot_num,uint8_t** buff,uint32_t* buflen
 		tbpara.src_format=VPE_SRC_PLANAR_YUV422;
 	    scalePro(&tbpara);
 		jpegCodec_reserved_vpe_QVGA_to_buff(s_pu8JpegEncBuf,buff,buflen,width_af_vpe,height_af_vpe);
-	    FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, dispW, dispH,width_af_vpe,height_af_vpe,zoom);
-
+	   // FormatConversion_Normal_QVGA_rgb(s_pu8JpegEncBuf, pu8FBBufAddr, dispW, dispH,width_af_vpe,height_af_vpe,zoom);
+		setCurVideoPara(dispW, dispH,width_af_vpe,height_af_vpe,zoom);
 	} else {
 
 		ERR_PRINT("Read V4L Error\n");

@@ -6,7 +6,8 @@
  */
 
 #include "jpegPro.h"
-
+#include "debug.h"
+#include<stdio.h>
 extern "C" {
 #include"jpegEncSrc/vin_demo.h"
 }
@@ -31,6 +32,16 @@ int jpegPro::getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len)
 	return getOneJpeg((ROTATEDIREC)rot_num,start,len,mZoomLev,mIsVideoForPhoto,needSwitchRes);
 }
 
+int jpegPro::displayOneVideoFrame(uint8_t* start, uint32_t len)
+{
+	if (curStatus != videoforCodec) {
+		displayVideoFrame();
+	}else{
+		dispalyOneJpeg(start,len);
+	}
+	return 0;
+}
+
 int jpegPro::init()
 {
 	return initJpegPro(eIMAGE_VGA);
@@ -41,10 +52,16 @@ int jpegPro::setDisplayZoom(ZOOMLEVEL level)
 	mZoomLev=level;
 	return 0;
 }
+int jpegPro::clearFb()
+{
+	DBG();
+	return __clearFb();
+}
 int jpegPro::enableVideoForPhoto()
 {
 	mIsVideoForPhoto = 1;
 	if ((FIRSTSWITCH == needSwitchRes)||(curStatus!=videoforpho)){
+		clearFb();
 		needSwitchRes = 1;
 		curStatus=videoforpho;
 	}else if(curStatus==videoforpho){
@@ -61,6 +78,7 @@ int jpegPro::enableVideoForRec()
 {
 	mIsVideoForPhoto = 0;
 	if ((FIRSTSWITCH == needSwitchRes)||(curStatus!=videoforrec)){
+		clearFb();
 		needSwitchRes = 1;
 		curStatus=videoforrec;
 	}else if(curStatus==videoforrec){
@@ -73,4 +91,20 @@ int jpegPro::disableVideoForRec()
 {
 	return 0;
 }
-
+int jpegPro::enableVideoForCodec()
+{
+	mIsVideoForPhoto = 0;
+	if ((FIRSTSWITCH == needSwitchRes)||(curStatus!=videoforCodec)){
+		clearFb();
+		needSwitchRes = 1;
+		curStatus=videoforCodec;
+	}else if(curStatus==videoforCodec){
+		needSwitchRes = 0;
+		curStatus=videoforCodec;
+	}
+	return 0;
+}
+int jpegPro::disableVideoForCodec()
+{
+	return 0;
+}

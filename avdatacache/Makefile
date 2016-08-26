@@ -22,17 +22,19 @@ STRIP	= $(PREFIX)strip
 #   ������ʱ�ļ�
 #============================================================================
 C_SRC		= $(shell find ./jpegEncSrc -name "*.c")
-C_SRC		+= $(shell find ../common/ -name "*.c")
+C_SRC		+= $(shell find ../common/   -name "*.c" ! -path "../common/thirdlib/*")
 C_OBJS		= $(C_SRC:%.c=%.o)
 
 CPP_SRC		= $(shell find ./ -name "*.cpp")
-CPP_SRC		+= $(shell find ../common/ -name "*.cpp")
+CPP_SRC		+= $(shell find ../common/  -name "*.cpp"  ! -path "../common/thirdlib/*")
 CPP_OBJS	= $(CPP_SRC:%.cpp=%.o)
 
 #============================================================================
 #   ���ҵ�ǰ·���µ�ͷ�ļ�·��
 #============================================================================
 INC_DIRS	=  $(TB_APPDIR)/common/thirdlib/build/include
+INC_DIRS	+=  ./audioEncSrc
+INC_DIRS	+=  $(TB_APPDIR)/common
 INC_DIRS	:= $(foreach incdir, $(INC_DIRS), -I$(incdir))
 #============================================================================
 #   �ⲿͷ�ļ���·��
@@ -47,9 +49,10 @@ EXTRA_INC_DIRS	:= $(foreach incdir, $(EXTRA_INC_DIRS), -I$(incdir))
 
 EXTRA_LIB_DIRS	+= /usr/local/arm_linux_4.2/arm-linux/lib
 EXTRA_LIB_DIRS	+= $(TB_APPDIR)/common/thirdlib/build/lib
+EXTRA_LIB_DIRS	+=  ./audioEncSrc
 EXTRA_LIB_DIRS	:= $(foreach incdir, $(EXTRA_LIB_DIRS), -L$(incdir))
 
-EXTRA_LIBS	+= -lpthread -lavilib -levent
+EXTRA_LIBS	+= -lpthread -lavilib -levent -lnaacenc
 
 #EXTRA_LIBS	+= $(TB_APPDIR)/server/lib/src/timechip/cw_timechip.o
 
@@ -71,7 +74,7 @@ LDFLAGS		+= $(EXTRA_LIBS)
 all: $(TARGET)
   
 $(TARGET):$(CPP_OBJS) $(C_OBJS) 
-	$(C++) -muclibc -o $(TARGET) $^ $(LDFLAGS) -ldl 
+	$(C++)  -o $(TARGET) $^ $(LDFLAGS) -ldl  -muclibc
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@

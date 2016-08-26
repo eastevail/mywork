@@ -34,10 +34,10 @@
 #include "JpegEnc.h"
 
 uint8_t *s_pu8JpegEncBuf = MAP_FAILED;
-static int32_t s_i32JpegFd = -1;
+int32_t s_i32JpegFd = -1;
 uint32_t s_u32JpegBufSize;
-static jpeg_param_t s_sJpegParam;
-static jpeg_info_t *s_pJpegInfo = NULL;	
+jpeg_param_t s_sJpegParam;
+jpeg_info_t *s_pJpegInfo = NULL;
 
 #define DBG_POINT()		printf("Function:%s. Line: %d\n", __FUNCTION__, __LINE__);
 
@@ -976,7 +976,9 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr, char **dstbuf, int* 
 
 	memset((void*) &s_sJpegParam, 0, sizeof(jpeg_param_t));
 	jpeginfo_size = sizeof(jpeg_info_t) + sizeof(__u32 );
-	s_pJpegInfo = malloc(jpeginfo_size);
+	if(!s_pJpegInfo)
+		s_pJpegInfo = malloc(jpeginfo_size);
+	memset((void*) s_pJpegInfo, 0, jpeginfo_size);
 
 	char *filename = "jpegEnc.dat";
 
@@ -1081,7 +1083,7 @@ int jpegCodec_reserved_vpe_QVGA_to_buff(uint8_t *pu8PicPtr, char **dstbuf, int* 
 	}
 
 out:
-	free(s_pJpegInfo);
+	//free(s_pJpegInfo);
 
 	return ret;
 

@@ -13,6 +13,7 @@
 typedef enum{
 	videoforpho=0,
 	videoforrec,
+	videoforCodec,
 }CURSTATUS;
 class jpegPro: public avDataPro
 {
@@ -21,11 +22,15 @@ public:
 	virtual ~jpegPro();
 	int init();
 	int getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len);//rot_num :rotate angle
+	int displayOneVideoFrame(uint8_t* start, uint32_t len);
 	int setDisplayZoom(ZOOMLEVEL level);
 	int enableVideoForPhoto();
 	int disableVideoForPhoto();
 	int enableVideoForRec();
 	int disableVideoForRec();
+	int enableVideoForCodec();
+	int disableVideoForCodec();
+	int clearFb();
 private:
 	ZOOMLEVEL mZoomLev;
 	int mIsVideoForPhoto;
