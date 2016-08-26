@@ -9,12 +9,14 @@
 #define STOCKSRC_CMANGEVT_H_
 #include<map>
 #include "CEventBase.h"
+#include"tb_tpye.h"
 using std::map;
 using std::pair;
 namespace myselfstock
 {
 typedef void (*eventflowcreate_notify)(CEventBase* );//new
 typedef void (*eventflowerror_notify)(CEventBase* );//new
+class funcProEvt;
 class CMangEVT
 {
 public:
@@ -36,10 +38,12 @@ public:
     int CreatEvtStock(CEventBase* tmp);//创建一个事件然后添加进基础事件
     map<CEventBase*,CEventBase*> m_EvtMapAdded;
     struct event m_signal_int;
+    funcProEvt* m_proEvt[FUNC_PRO_TOTAL];
 private:
     struct event_base *m_pBase;
     static CMangEVT* m_pInstance;
     static int m_ReferCount;
+
     CMangEVT();
     ~CMangEVT();
     int AddEvtToMap();

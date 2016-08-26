@@ -1,5 +1,5 @@
 #!/bin/sh
-	rm avilib libevent-master log4cpp tinyxml2 -rf
+	rm avilib libevent-master log4cpp tinyxml2 rampool -rf
 	cd build
 	rm * -rf
 	cd -
@@ -13,4 +13,7 @@
 	cd avilib
 	./build.sh
 	cd -
-	rm avilib libevent-master log4cpp tinyxml2 -rf
+	cd rampool
+	./build.sh
+	cd -
+	rm avilib libevent-master log4cpp tinyxml2 rampool -rf

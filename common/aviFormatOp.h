@@ -21,10 +21,15 @@ public:
 	virtual int createOneAvFile(Avdata* pdata, char* filename);
 	virtual int decodeOneAvFile(Avdata* pdata,char* filename);
 	virtual unsigned int getCurWriAvFileLen();
+	int openAvFile(char* filename);
+	int closeAvFile(char* filename);
+	int getOneFrame(char* videobuf);
+	int getOneAudio(char* audiobuf,int len);
 private:
 	char lastCallFilename[128];
 	avi_t *out_fd;
 	avi_t *read_fd;
+	pthread_mutex_t mutex;
 };
 
 #endif /* TBAPP_COMMON_AVIFORMATOP_H_ */

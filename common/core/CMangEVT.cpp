@@ -26,6 +26,8 @@ CMangEVT::CMangEVT()
     m_pBase = event_base_new();
     m_pEvtNotify=NULL;
     m_pEvtNotifyerr=NULL;
+    for(int i=0;i<FUNC_PRO_TOTAL;i++)
+    	m_proEvt[i]=NULL;
 //    m_pEvtBase=NULL;
     INIT_TS_LOG;
     TSever_LOG_Error("*****CMangEVT*****CMangEVT******CMangEVT*******CMangEVT*******************CMangEVT********CMangEVT******");

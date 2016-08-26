@@ -18,7 +18,7 @@ avDataPro::~avDataPro()
 	// TODO Auto-generated destructor stub
 }
 
-int avDataPro::getOneVideoFrameFromDri(int rot_num, uint8_t** start, uint32_t *len)
+int avDataPro::getOneVideoFrameFromDri(int rot_num,uint8_t** start, uint32_t *len)
 {
 	return 0;
 }
@@ -51,6 +51,14 @@ int avDataPro::enableVideoForRec()
 	return 0;
 }
 int avDataPro::disableVideoForRec()
+{
+	return 0;
+}
+int avDataPro::enableVideoForCodec()
+{
+	return 0;
+}
+int avDataPro::disableVideoForCodec()
 {
 	return 0;
 }

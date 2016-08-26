@@ -8,6 +8,28 @@
 #ifndef TBAPP_COMMON_TB_TPYE_H_
 #define TBAPP_COMMON_TB_TPYE_H_
 
+typedef enum{
+	AVDATA_CACHE=0,
+	TB_UI,
+	DISPALY_MANAGE,
+	MSGSERVER,
+	RECORD_PRO,
+	FUNC_PRO_TOTAL,
+}FUNC_PRO_TYPE;
+
+typedef enum{
+	REGISTER_TO_MSGSERVER=0,
+
+}TB_MSG_TYPE;
+
+typedef struct{
+	int destPro;
+	int srcPro;
+	int msgType;
+	int msglen;
+	int magic;
+	char* msg;
+}MsgCommuni;
 typedef enum
 {
 	eIMAGE_QVGA,

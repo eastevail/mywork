@@ -23,6 +23,8 @@ public:
 	virtual int disableVideoForPhoto();
 	virtual int enableVideoForRec();
 	virtual int disableVideoForRec();
+	virtual int enableVideoForCodec();
+	virtual int disableVideoForCodec();
 };
 
 #endif /* TBAPP_COMMON_AVDATAPRO_H_ */
