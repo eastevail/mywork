@@ -19,6 +19,7 @@ recordManage::recordManage()
 	bzero(m_FileName,sizeof(m_FileName));
 	first = 1;
 	m_curMaxFileIndex =0;
+	pfaac=NULL;
 }
 
 recordManage::~recordManage()
@@ -32,6 +33,10 @@ recordManage::~recordManage()
 		delete m_Avdata.buffV;
 	if(m_Avdata.buffA)
 		delete m_Avdata.buffA;
+	if(pfaac){
+		fclose(pfaac);
+		sync();
+	}
 }
 
 static bool StorageMountCheck(char *devName)
@@ -336,20 +341,19 @@ int 	recordManage::getFileName()
 }
 int recordManage::saveOneAvToFile()
 {
-	int ret=0;
+	int ret = 0;
 	ret = getFileName();
 	CHECKRET(ret);
-/*	FILE* pf=NULL;
-	pf=fopen("/mnt/tmp/ceshi.jpg","w+");
-	if(pf){
-		ret=fwrite(m_Avdata.buffV,1,m_Avdata.lenV,pf);
-		if(ret==m_Avdata.lenV){
-			fclose(pf);
-			sync();
-			exit(0);
+
+/*	if (!pfaac)
+		pfaac = fopen("/mnt/tmp/ceshi.aac", "w+");
+	if (pfaac) {
+		ret = fwrite(m_Avdata.buffA, 1, m_Avdata.lenA, pfaac);
+		if (ret != m_Avdata.lenA) {
+			return -1;
 		}
 	}*/
 	ret=m_pAviOp->createOneAvFile(&m_Avdata,m_FileName);
-	CHECKRET(ret);
+	 CHECKRET(ret);
 	return 0;
 }

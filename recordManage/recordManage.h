@@ -73,6 +73,7 @@ private:
 	Avdata m_Avdata;
 	char first;
 	RECORD_STATUS_E m_rectype;
+	FILE* pfaac;
 };
 
 #endif /* TBAPP_RECORDMANAGE_RECORDMANAGE_H_ */
